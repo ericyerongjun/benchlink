@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   LayoutDashboard, Search, Users, Truck, Database, Settings,
   Bell, Upload, X, ArrowUp, ArrowDown, Package, Clock,
@@ -36,11 +36,11 @@ const CHART_DATA = [
 ];
 
 const SUPPLIERS = [
-  { name: 'Shenzhen PCB Co.',   loc: 'Nanshan, SZ',   match: 94, stars: 5, lead: '7 days',  price: '$0.80–$1.20/unit' },
-  { name: 'GBA Circuit Works',  loc: 'Futian, SZ',    match: 88, stars: 4, lead: '10 days', price: '$0.65–$0.95/unit' },
-  { name: 'Dragon Electronics', loc: 'Longhua, SZ',   match: 82, stars: 4, lead: '14 days', price: '$0.55–$0.80/unit' },
-  { name: 'Pearl River Fab',    loc: 'Guangzhou',     match: 79, stars: 3, lead: '12 days', price: '$0.45–$0.70/unit' },
-  { name: 'HK Precision Mfg',  loc: 'Kwun Tong, HK', match: 75, stars: 4, lead: '8 days',  price: '$1.10–$1.60/unit' },
+  { name: 'Shenzhen PCB Co.',   loc: 'Nanshan, SZ',   match: 94, stars: 5, leadDays: 7,  lead: '7 days',  priceLow: 0.80, priceHigh: 1.20, price: '$0.80–$1.20/unit', components: ['FR4 PCB', 'Multilayer PCB', 'HASL Finish'] },
+  { name: 'GBA Circuit Works',  loc: 'Futian, SZ',    match: 88, stars: 4, leadDays: 10, lead: '10 days', priceLow: 0.65, priceHigh: 0.95, price: '$0.65–$0.95/unit', components: ['SMT Assembly', 'PCB Fab', 'ENIG Finish'] },
+  { name: 'Dragon Electronics', loc: 'Longhua, SZ',   match: 82, stars: 4, leadDays: 14, lead: '14 days', priceLow: 0.55, priceHigh: 0.80, price: '$0.55–$0.80/unit', components: ['FR4 PCB', 'HASL Finish', 'Wave Soldering'] },
+  { name: 'Pearl River Fab',    loc: 'Guangzhou',     match: 79, stars: 3, leadDays: 12, lead: '12 days', priceLow: 0.45, priceHigh: 0.70, price: '$0.45–$0.70/unit', components: ['PCB Fab', 'CNC Machining', 'Aluminum PCB'] },
+  { name: 'HK Precision Mfg',  loc: 'Kwun Tong, HK', match: 75, stars: 4, leadDays: 8,  lead: '8 days',  priceLow: 1.10, priceHigh: 1.60, price: '$1.10–$1.60/unit', components: ['Precision PCB', 'ENIG Finish', 'Rigid-Flex'] },
 ];
 
 const BUYERS = [
@@ -558,6 +558,13 @@ function SupplierRow({ s }) {
         background: hover ? `${C.teal}12` : 'transparent',
         borderLeft: hover ? `3px solid ${C.bright}` : '3px solid transparent',
       }}>
+      <td style={{ padding: '12px 16px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+          {s.components.map(c => (
+            <Badge key={c} color={C.teal} size="sm">{c}</Badge>
+          ))}
+        </div>
+      </td>
       <td style={{ padding: '12px 16px', color: C.text, fontWeight: 600, fontSize: 13 }}>{s.name}</td>
       <td style={{ padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: C.muted, fontSize: 12 }}>
@@ -584,49 +591,274 @@ function SupplierRow({ s }) {
   );
 }
 
+// ─── Agentic AI keyword → component mapping ──────────────────────────────────
+const COMPONENT_MAP = {
+  pcb:        ['FR4 PCB', 'Multilayer PCB', 'Aluminum PCB'],
+  circuit:    ['FR4 PCB', 'Precision PCB'],
+  iot:        ['SMT Assembly', 'Quality Testing'],
+  sensor:     ['SMT Assembly', 'Quality Testing', 'FR4 PCB'],
+  assembly:   ['SMT Assembly'],
+  smt:        ['SMT Assembly'],
+  cnc:        ['CNC Machining'],
+  machining:  ['CNC Machining'],
+  precision:  ['Precision PCB', 'ENIG Finish'],
+  flex:       ['Rigid-Flex'],
+  rigid:      ['Rigid-Flex'],
+  enig:       ['ENIG Finish'],
+  hasl:       ['HASL Finish'],
+  soldering:  ['Wave Soldering'],
+  wave:       ['Wave Soldering'],
+  multilayer: ['Multilayer PCB', 'FR4 PCB'],
+  aluminum:   ['Aluminum PCB'],
+  wearable:   ['Rigid-Flex', 'SMT Assembly'],
+  consumer:   ['FR4 PCB', 'HASL Finish', 'Wave Soldering'],
+};
+
 function SourcingView() {
   const [uploaded, setUploaded] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [showRfq, setShowRfq] = useState(false);
 
+  // Chat state
+  const [chatInput, setChatInput] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [aiThinking, setAiThinking] = useState(false);
+  const [detectedComponents, setDetectedComponents] = useState([]);
+
+  // Filter & sort state
+  const [filterComponent, setFilterComponent] = useState(null);
+  const [filterLocation, setFilterLocation] = useState(null);
+  const [sortKey, setSortKey] = useState(null);     // 'match' | 'stars' | 'leadDays' | 'priceLow'
+  const [sortDir, setSortDir] = useState('asc');
+
+  const chatEndRef = useRef(null);
+
+  // Scroll chat to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, aiThinking]);
+
+  // All unique components & locations for filter chips
+  const allComponents = useMemo(() => {
+    const set = new Set();
+    SUPPLIERS.forEach(s => s.components.forEach(c => set.add(c)));
+    return [...set].sort();
+  }, []);
+
+  const allLocations = useMemo(() => {
+    const set = new Set();
+    SUPPLIERS.forEach(s => set.add(s.loc));
+    return [...set].sort();
+  }, []);
+
+  // Processed supplier list
+  const processedSuppliers = useMemo(() => {
+    let list = [...SUPPLIERS];
+    if (filterComponent) {
+      list = list.filter(s => s.components.some(c => c === filterComponent));
+    }
+    if (filterLocation) {
+      list = list.filter(s => s.loc === filterLocation);
+    }
+    if (sortKey) {
+      list.sort((a, b) => {
+        const aVal = a[sortKey];
+        const bVal = b[sortKey];
+        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+      });
+    }
+    return list;
+  }, [filterComponent, filterLocation, sortKey, sortDir]);
+
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      // Cycle: asc → desc → none
+      if (sortDir === 'asc') { setSortDir('desc'); }
+      else if (sortDir === 'desc') { setSortKey(null); setSortDir('asc'); }
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const sortIndicator = (key) => {
+    if (sortKey !== key) return <span style={{ color: C.border, fontSize: 10, marginLeft: 2 }}>↕</span>;
+    return <span style={{ color: C.bright, fontSize: 10, marginLeft: 2 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
+
+  // Chat: simulate agentic AI analysis
+  const handleChatSubmit = (e) => {
+    e?.preventDefault();
+    const q = chatInput.trim();
+    if (!q) return;
+
+    const userMsg = { role: 'user', text: q };
+    setMessages(prev => [...prev, userMsg]);
+    setChatInput('');
+    setAiThinking(true);
+
+    // Simulate AI processing delay
+    setTimeout(() => {
+      const lower = q.toLowerCase();
+      const detected = new Set();
+      Object.entries(COMPONENT_MAP).forEach(([keyword, comps]) => {
+        if (lower.includes(keyword)) comps.forEach(c => detected.add(c));
+      });
+      // If nothing matched, fallback to a generic set
+      const detectedArr = detected.size > 0 ? [...detected] : ['FR4 PCB', 'SMT Assembly', 'Quality Testing'];
+
+      const aiMsg = {
+        role: 'ai',
+        text: detected.size > 0
+          ? `Agentic AI analyzed your request. Detected **${detectedArr.length}** relevant component categories from our supplier database.`
+          : `No specific components matched your query. Showing all available supplier components for your review.`,
+        components: detectedArr,
+      };
+      setMessages(prev => [...prev, aiMsg]);
+      setDetectedComponents(detectedArr);
+      setAiThinking(false);
+      setUploaded(true); // triggers AI Analysis panel too
+    }, 1400 + Math.random() * 800);
+  };
+
+  const handleFilterToggle = (type, value) => {
+    if (type === 'component') {
+      setFilterComponent(prev => prev === value ? null : value);
+    } else {
+      setFilterLocation(prev => prev === value ? null : value);
+    }
+  };
+
+  const clearFilters = () => {
+    setFilterComponent(null);
+    setFilterLocation(null);
+    setSortKey(null);
+    setSortDir('asc');
+  };
+
+  const hasActiveFilters = filterComponent || filterLocation || sortKey;
+
   return (
     <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
-      {/* Drop zone */}
+      {/* ── Agentic AI Chatbox ── */}
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Zap size={15} style={{ color: C.bright }} />
+          <span style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Agentic AI Sourcing</span>
+          <Badge color={C.success}>Online</Badge>
+        </div>
+
+        {/* Messages area */}
+        <div style={{ padding: '14px 18px', maxHeight: 260, overflowY: 'auto', background: C.bg }}>
+          {messages.length === 0 && !aiThinking && (
+            <div style={{ color: C.muted, fontSize: 12, textAlign: 'center', padding: '20px 0', lineHeight: 1.8 }}>
+              <Zap size={22} style={{ color: C.border, marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
+              Describe your product requirements and our agentic AI will analyze components<br />
+              and match the best suppliers from the database.<br />
+              <span style={{ color: C.bright }}>Try: "I need multilayer PCBs for IoT sensors"</span>
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <div key={i} style={{ marginBottom: 12 }} className="fade-in">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <span style={{
+                  background: m.role === 'user' ? C.teal : C.bright,
+                  color: '#fff', borderRadius: 4, padding: '1px 7px', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
+                }}>
+                  {m.role === 'user' ? 'YOU' : 'AI'}
+                </span>
+                <span style={{ color: C.muted, fontSize: 10 }}>
+                  {m.role === 'user' ? 'Just now' : 'Analysis complete'}
+                </span>
+              </div>
+              <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>{m.text}</div>
+              {m.components && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+                  {m.components.map(c => (
+                    <button key={c}
+                      onClick={() => handleFilterToggle('component', c)}
+                      style={{
+                        background: filterComponent === c ? C.teal : `${C.teal}22`,
+                        border: `1px solid ${filterComponent === c ? C.teal : `${C.teal}44`}`,
+                        color: filterComponent === c ? '#fff' : C.bright,
+                        borderRadius: 6, padding: '4px 11px', fontSize: 11, fontWeight: 600,
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}>
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {aiThinking && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.muted, fontSize: 12 }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%', background: C.bright,
+                animation: 'countUp 0.6s ease-in-out infinite',
+              }} />
+              Agentic AI analyzing your requirements...
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Chat input */}
+        <form onSubmit={handleChatSubmit}
+          style={{
+            padding: '10px 18px', borderTop: `1px solid ${C.border}`,
+            display: 'flex', gap: 8, alignItems: 'center',
+          }}>
+          <input
+            value={chatInput}
+            onChange={e => setChatInput(e.target.value)}
+            placeholder="Describe your product or paste BOM requirements..."
+            style={{
+              flex: 1, background: C.bg, border: `1px solid ${C.border}`,
+              borderRadius: 7, padding: '9px 14px', color: C.text, fontSize: 13, outline: 'none',
+            }}
+          />
+          <Btn variant="primary" onClick={handleChatSubmit} icon={<Send size={14} />}
+            style={{ padding: '9px 16px', fontSize: 12, flexShrink: 0, ...glow }}>
+            Analyze
+          </Btn>
+        </form>
+      </Card>
+
+      {/* ── Drop zone (secondary) ── */}
       <Card
         style={{
           border: `2px dashed ${dragging ? C.bright : C.border}`,
           background: dragging ? `${C.teal}14` : C.surface,
-          textAlign: 'center', padding: '36px 20px', cursor: 'pointer', transition: 'all 0.2s',
+          textAlign: 'center', padding: '20px 20px', cursor: 'pointer', transition: 'all 0.2s',
         }}
         onClick={() => setUploaded(true)}
         onDragOver={e => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={e => { e.preventDefault(); setDragging(false); setUploaded(true); }}
       >
-        <Upload size={38} style={{ color: dragging ? C.bright : C.muted, marginBottom: 12, transition: 'all 0.2s' }} />
-        <div style={{ color: C.text, fontWeight: 600, fontSize: 15, marginBottom: 6 }}>
-          Drag & drop PCB, CAD, BOM, or CNC files
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.muted, fontSize: 12 }}>
+          <Upload size={16} style={{ color: dragging ? C.bright : C.muted }} />
+          Drop PCB, CAD, BOM, or CNC files here &nbsp;—&nbsp; .gbr · .dxf · .xlsx · .step · .iges
         </div>
-        <div style={{ color: C.muted, fontSize: 12, marginBottom: 14 }}>
-          Supports .gbr · .dxf · .xlsx · .step · .iges &nbsp;—&nbsp; max 50 MB
-        </div>
-        <Badge color={C.bright}>Click to browse or drop files</Badge>
       </Card>
 
-      {/* AI Analysis */}
-      {uploaded && (
+      {/* ── AI Analysis panel ── */}
+      {uploaded && detectedComponents.length > 0 && (
         <Card style={{ border: `1px solid ${C.teal}55` }} className="fade-in">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <Zap size={15} style={{ color: C.bright }} />
-            <span style={{ color: C.text, fontWeight: 700 }}>AI Analysis</span>
+            <span style={{ color: C.text, fontWeight: 700 }}>AI Component Analysis</span>
             <Badge color={C.success}>Complete</Badge>
-            <span style={{ marginLeft: 'auto', color: C.muted, fontSize: 11 }}>BOM_v3.xlsx · 2.4 MB · Processed in 3.2s</span>
+            <span style={{ marginLeft: 'auto', color: C.muted, fontSize: 11 }}>
+              {detectedComponents.length} components detected · Matched {processedSuppliers.length} suppliers
+            </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
             {[
-              { label: 'DETECTED PROCESS',       content: <span style={{ color: C.text, fontWeight: 600, fontSize: 13 }}>PCB Manufacturing — 4-layer FR4</span> },
-              { label: 'DESIGN FLAGS',            content: <span style={{ color: C.warning, fontWeight: 600, fontSize: 13 }}>⚠ 2 silkscreen warnings, 1 drill advisory</span> },
-              { label: 'RECOMMENDED CATEGORIES', content: <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{['PCB Fab','SMT Assembly','Quality Testing'].map(t=><Badge key={t}>{t}</Badge>)}</div> },
+              { label: 'DETECTED COMPONENTS',   content: <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{detectedComponents.map(c => <Badge key={c} color={C.bright}>{c}</Badge>)}</div> },
+              { label: 'MANUFACTURING PROCESS', content: <span style={{ color: C.text, fontWeight: 600, fontSize: 13 }}>PCB Manufacturing — Multi-layer assembly</span> },
+              { label: 'QUALITY FLAGS',         content: <span style={{ color: C.warning, fontWeight: 600, fontSize: 13 }}>⚠ 2 advisory items — review recommended</span> },
             ].map(({ label, content }) => (
               <div key={label} style={{ background: C.bg, borderRadius: 8, padding: 14 }}>
                 <div style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', marginBottom: 8 }}>{label}</div>
@@ -637,28 +869,122 @@ function SourcingView() {
         </Card>
       )}
 
-      {/* Supplier table */}
+      {/* ── Filter / Sort bar ── */}
+      <Card style={{ padding: '12px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+          {/* Component filter */}
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ color: C.muted, fontSize: 10, letterSpacing: '0.05em', marginBottom: 7, textTransform: 'uppercase' }}>
+              Filter by Component
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {allComponents.map(c => (
+                <button key={c} onClick={() => handleFilterToggle('component', c)}
+                  style={{
+                    background: filterComponent === c ? C.teal : 'transparent',
+                    border: `1px solid ${filterComponent === c ? C.teal : C.border}`,
+                    color: filterComponent === c ? '#fff' : C.muted,
+                    borderRadius: 5, padding: '3px 9px', fontSize: 11, fontWeight: filterComponent === c ? 600 : 400,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Location filter */}
+          <div style={{ minWidth: 160 }}>
+            <div style={{ color: C.muted, fontSize: 10, letterSpacing: '0.05em', marginBottom: 7, textTransform: 'uppercase' }}>
+              Filter by Location
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {allLocations.map(loc => (
+                <button key={loc} onClick={() => handleFilterToggle('location', loc)}
+                  style={{
+                    background: filterLocation === loc ? C.teal : 'transparent',
+                    border: `1px solid ${filterLocation === loc ? C.teal : C.border}`,
+                    color: filterLocation === loc ? '#fff' : C.muted,
+                    borderRadius: 5, padding: '3px 9px', fontSize: 11, fontWeight: filterLocation === loc ? 600 : 400,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}>
+                  <MapPin size={10} style={{ marginRight: 2, verticalAlign: 'middle' }} />
+                  {loc}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Clear filters */}
+          {hasActiveFilters && (
+            <button onClick={clearFilters}
+              style={{
+                background: 'transparent', border: `1px solid ${C.danger}44`, color: C.danger,
+                borderRadius: 5, padding: '5px 10px', fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', marginTop: 16, display: 'flex', alignItems: 'center', gap: 4,
+              }}>
+              <X size={12} /> Clear all
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {/* ── Supplier table ── */}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Supplier Matches</span>
-          <Badge>{SUPPLIERS.length} results</Badge>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-            <Btn variant="ghost" icon={<Filter size={12} />} style={{ padding: '5px 11px', fontSize: 11 }}>Filter</Btn>
+          <Badge>{processedSuppliers.length} of {SUPPLIERS.length} results</Badge>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {sortKey && (
+              <span style={{ color: C.muted, fontSize: 10, letterSpacing: '0.04em' }}>
+                Sorted by {sortKey === 'match' ? 'Match %' : sortKey === 'stars' ? 'Reliability' : sortKey === 'leadDays' ? 'Lead Time' : 'Price'}
+                {' '}({sortDir === 'asc' ? 'ascending' : 'descending'})
+              </span>
+            )}
           </div>
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
             <thead>
               <tr style={{ background: `${C.bg}99` }}>
-                {['Supplier Name','Location','Match %','Reliability','Lead Time','Price Range',''].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', color: C.muted, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>
-                    {h}
+                {[
+                  { label: 'Component',     key: null },
+                  { label: 'Supplier Name', key: null },
+                  { label: 'Location',      key: null },
+                  { label: 'Match %',       key: 'match' },
+                  { label: 'Reliability',   key: 'stars' },
+                  { label: 'Lead Time',     key: 'leadDays' },
+                  { label: 'Price Range',   key: 'priceLow' },
+                  { label: '',              key: null },
+                ].map(({ label, key }) => (
+                  <th key={label}
+                    onClick={key ? () => handleSort(key) : undefined}
+                    style={{
+                      padding: '10px 16px', textAlign: 'left', color: C.muted, fontSize: 10,
+                      fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                      borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap',
+                      cursor: key ? 'pointer' : 'default',
+                      userSelect: 'none',
+                      transition: 'color 0.15s',
+                    }}>
+                    {label}{key && sortIndicator(key)}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {SUPPLIERS.map((s, i) => <SupplierRow key={i} s={s} />)}
+              {processedSuppliers.length > 0 ? (
+                processedSuppliers.map((s, i) => <SupplierRow key={i} s={s} />)
+              ) : (
+                <tr>
+                  <td colSpan={8} style={{ padding: '40px 16px', textAlign: 'center', color: C.muted, fontSize: 13 }}>
+                    No suppliers match the current filters.
+                    <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.bright, cursor: 'pointer', fontWeight: 600, marginLeft: 4, fontSize: 13 }}>
+                      Clear filters
+                    </button>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
