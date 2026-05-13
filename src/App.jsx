@@ -315,29 +315,6 @@ function DashboardView({ onNav }) {
           ))}
         </Card>
 
-        {/* Quick actions */}
-        <Card style={{ flex: '0 0 260px' }}>
-          <SectionTitle icon={<Zap size={16} />}>Quick Actions</SectionTitle>
-          {[
-            { label: 'Upload Design File', sub: 'PCB, CAD, BOM, CNC', page: 'sourcing', bg: '#1a3a5c', bdr: '#2a5080', icon: <Upload size={17} style={{ color: '#60A5FA' }} />, iconBg: '#2a5080' },
-            { label: 'Find Buyers',        sub: 'Global buyer discovery', page: 'buyers',   bg: `${C.teal}18`, bdr: `${C.teal}44`, icon: <Users size={17} style={{ color: C.bright }} />, iconBg: `${C.teal}44` },
-            { label: 'Get Logistics Quote',sub: 'Instant freight pricing', page: 'logistics',bg: '#2a1a00', bdr: `${C.warning}44`, icon: <Truck size={17} style={{ color: C.warning }} />, iconBg: `${C.warning}33` },
-          ].map(a => (
-            <button key={a.page} onClick={() => onNav(a.page)} style={{
-              width: '100%', background: a.bg, border: `1px solid ${a.bdr}`,
-              borderRadius: 8, padding: '13px 14px', cursor: 'pointer', display: 'flex',
-              alignItems: 'center', gap: 12, color: C.text, marginBottom: 9, transition: 'all 0.18s',
-            }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: a.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {a.icon}
-              </div>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{a.label}</div>
-                <div style={{ color: C.muted, fontSize: 11, marginTop: 1 }}>{a.sub}</div>
-              </div>
-            </button>
-          ))}
-        </Card>
       </div>
 
       {/* Chart */}
@@ -364,6 +341,84 @@ function DashboardView({ onNav }) {
             <Area type="monotone" dataKey="requests" stroke={C.bright} strokeWidth={2} fill="url(#tg)" dot={{ fill: C.bright, r: 3, strokeWidth: 0 }} />
           </AreaChart>
         </ResponsiveContainer>
+      </Card>
+
+      {/* Buyers & Suppliers with Shipment Processes */}
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Users size={15} style={{ color: C.bright }} />
+          <span style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Buyers & Suppliers</span>
+          <Badge>{BUYERS.length + SUPPLIERS.length} partners</Badge>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
+            <thead>
+              <tr style={{ background: `${C.bg}99` }}>
+                {['Type', 'Name', 'Location', 'Shipment Route', 'Carrier', 'Transit', 'Status'].map(h => (
+                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', color: C.muted, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {BUYERS.map((b, i) => {
+                const route = (() => {
+                  if (b.flag === '🇩🇪') return { route: 'HK → Frankfurt', carrier: 'DHL Express', transit: '3–5 days', status: 'Active' };
+                  if (b.flag === '🇺🇸' && b.name.includes('MakerSpace')) return { route: 'Shenzhen → Los Angeles', carrier: 'FWD', transit: '12–16 days', status: 'In Transit' };
+                  if (b.flag === '🇺🇸') return { route: 'HK → San Francisco', carrier: 'SF Express', transit: '5–7 days', status: 'Active' };
+                  if (b.flag === '🇸🇪') return { route: 'HK → Stockholm', carrier: 'DHL Express', transit: '3–5 days', status: 'Active' };
+                  if (b.flag === '🇯🇵') return { route: 'HK → Tokyo', carrier: 'SF Express', transit: '3–5 days', status: 'Delivered' };
+                  if (b.flag === '🇬🇧') return { route: 'HK → London', carrier: 'Air Freight', transit: '2–3 days', status: 'Active' };
+                  return { route: '—', carrier: '—', transit: '—', status: 'Pending' };
+                })();
+                const statusColor = route.status === 'Delivered' ? C.success : route.status === 'In Transit' ? C.warning : route.status === 'Active' ? C.bright : C.muted;
+                return (
+                  <tr key={`b-${i}`} style={{ borderBottom: `1px solid ${C.border}`, transition: 'all 0.15s' }}>
+                    <td style={{ padding: '11px 16px' }}><Badge color="#60A5FA">Buyer</Badge></td>
+                    <td style={{ padding: '11px 16px', color: C.text, fontWeight: 600, fontSize: 13 }}>{b.flag} {b.name}</td>
+                    <td style={{ padding: '11px 16px', color: C.muted, fontSize: 12 }}>{b.contact}</td>
+                    <td style={{ padding: '11px 16px', color: C.text, fontSize: 12, fontFamily: 'monospace' }}>{route.route}</td>
+                    <td style={{ padding: '11px 16px', color: C.muted, fontSize: 12 }}>{route.carrier}</td>
+                    <td style={{ padding: '11px 16px', color: C.muted, fontSize: 12 }}>{route.transit}</td>
+                    <td style={{ padding: '11px 16px' }}>
+                      <span style={{ color: statusColor, fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, display: 'inline-block' }} />{route.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {SUPPLIERS.map((s, i) => {
+                const route = (() => {
+                  if (s.loc.includes('SZ') || s.loc.includes('Shenzhen')) return { route: 'Shenzhen → Global', carrier: 'Multi-carrier', transit: '7–30 days', status: 'Active' };
+                  if (s.loc.includes('Guangzhou')) return { route: 'Guangzhou → Global', carrier: 'Multi-carrier', transit: '10–30 days', status: 'Active' };
+                  if (s.loc.includes('HK')) return { route: 'HK → Global', carrier: 'Multi-carrier', transit: '3–30 days', status: 'Active' };
+                  return { route: '—', carrier: '—', transit: '—', status: 'Pending' };
+                })();
+                return (
+                  <tr key={`s-${i}`} style={{ borderBottom: `1px solid ${C.border}`, transition: 'all 0.15s' }}>
+                    <td style={{ padding: '11px 16px' }}><Badge color={C.success}>Supplier</Badge></td>
+                    <td style={{ padding: '11px 16px', color: C.text, fontWeight: 600, fontSize: 13 }}>{s.name}</td>
+                    <td style={{ padding: '11px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: C.muted, fontSize: 12 }}>
+                        <MapPin size={11} />{s.loc}
+                      </div>
+                    </td>
+                    <td style={{ padding: '11px 16px', color: C.text, fontSize: 12, fontFamily: 'monospace' }}>{route.route}</td>
+                    <td style={{ padding: '11px 16px', color: C.muted, fontSize: 12 }}>{route.carrier}</td>
+                    <td style={{ padding: '11px 16px', color: C.muted, fontSize: 12 }}>{route.transit}</td>
+                    <td style={{ padding: '11px 16px' }}>
+                      <span style={{ color: C.bright, fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.bright, display: 'inline-block' }} />{route.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </div>
   );
