@@ -69,9 +69,54 @@ const QUOTES = [
 ];
 
 const SHIPMENTS = [
-  { id:'DHL-883821', route:'HK → Frankfurt',         pct:70,  status:'Customs Clearance', carrier:'DHL',    done:false },
-  { id:'SF-449021',  route:'HK → Tokyo',             pct:100, status:'Delivered ✓',       carrier:'SF Exp', done:true  },
-  { id:'FWD-221983', route:'Shenzhen → Los Angeles', pct:50,  status:'In Transit',         carrier:'FWD',    done:false },
+  {
+    id: 'DHL-883821',
+    origin: 'Hong Kong',
+    destination: 'Frankfurt, Germany',
+    buyerCountry: 'Germany',
+    carrier: 'DHL Express',
+    buyer: 'TechHardware GmbH',
+    stages: [
+      { label: 'Package Received',    loc: 'Kwun Tong, HK',      date: 'May 8, 2026 14:22',  done: true },
+      { label: 'Local Transit',       loc: 'Hong Kong',          date: 'May 9, 2026 08:15',  done: true },
+      { label: 'Customs Clearance',   loc: 'Hong Kong Intl.',    date: 'May 10, 2026 11:30', done: false, current: true },
+      { label: 'International Transit', loc: 'HK → FRA',          date: 'Pending',             done: false },
+      { label: 'Germany Transit',     loc: 'Frankfurt',          date: 'Pending',             done: false },
+      { label: 'Delivered',           loc: 'Frankfurt, Germany', date: 'Pending',             done: false },
+    ],
+  },
+  {
+    id: 'SF-449021',
+    origin: 'Shenzhen',
+    destination: 'Tokyo, Japan',
+    buyerCountry: 'Japan',
+    carrier: 'SF Express',
+    buyer: 'Osaka Electronics',
+    stages: [
+      { label: 'Package Received',    loc: 'Futian, SZ',         date: 'Apr 28, 2026 09:10', done: true },
+      { label: 'Local Transit',       loc: 'Shenzhen → HK',      date: 'Apr 29, 2026 16:45', done: true },
+      { label: 'Customs Clearance',   loc: 'Hong Kong Intl.',    date: 'Apr 30, 2026 10:20', done: true },
+      { label: 'International Transit', loc: 'HK → NRT',          date: 'May 1, 2026 22:00',  done: true },
+      { label: 'Japan Transit',       loc: 'Tokyo',              date: 'May 3, 2026 07:30',  done: true },
+      { label: 'Delivered',           loc: 'Tokyo, Japan',       date: 'May 3, 2026 14:15',  done: true },
+    ],
+  },
+  {
+    id: 'FWD-221983',
+    origin: 'Shenzhen',
+    destination: 'Los Angeles, USA',
+    buyerCountry: 'USA',
+    carrier: 'FWD',
+    buyer: 'MakerSpace Labs',
+    stages: [
+      { label: 'Package Received',    loc: 'Longhua, SZ',        date: 'May 6, 2026 11:00',  done: true },
+      { label: 'Local Transit',       loc: 'Shenzhen',           date: 'May 7, 2026 09:30',  done: true },
+      { label: 'Customs Clearance',   loc: 'Shenzhen Intl.',     date: 'May 8, 2026 15:45',  done: false, current: true },
+      { label: 'International Transit', loc: 'SZ → LAX',          date: 'Pending',             done: false },
+      { label: 'USA Transit',         loc: 'Los Angeles',        date: 'Pending',             done: false },
+      { label: 'Delivered',           loc: 'Los Angeles, USA',   date: 'Pending',             done: false },
+    ],
+  },
 ];
 
 // ─── Atoms ────────────────────────────────────────────────────────────────────
@@ -970,35 +1015,115 @@ function LogisticsView() {
         </Card>
       )}
 
-      {/* Active shipments */}
+      {/* Active shipments — FedEx-style tracking */}
       <Card>
         <SectionTitle icon={<Package size={16} />}>Active Shipments</SectionTitle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {SHIPMENTS.map((s, i) => (
-            <div key={i}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ color: C.text, fontWeight: 700, fontSize: 13, fontFamily: 'monospace' }}>{s.id}</span>
-                  <span style={{ color: C.muted, fontSize: 12 }}>{s.route}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Badge color={s.done ? C.success : C.bright} size="sm">{s.carrier}</Badge>
-                  <span style={{ color: s.done ? C.success : C.muted, fontSize: 12, fontWeight: s.done ? 600 : 400 }}>{s.status}</span>
-                </div>
-              </div>
-              <div style={{ background: C.border, borderRadius: 4, height: 8, overflow: 'hidden', marginBottom: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+          {SHIPMENTS.map((s, i) => {
+            const allDone = s.stages.every(st => st.done);
+            const inProgress = s.stages.find(st => st.current);
+            const currentIdx = s.stages.findIndex(st => st.current);
+            const progressPct = allDone ? 100 : currentIdx >= 0 ? Math.round((currentIdx / (s.stages.length - 1)) * 100) : 0;
+            return (
+              <div key={i}>
+                {/* Shipment header */}
                 <div style={{
-                  width: `${s.pct}%`, height: '100%', borderRadius: 4, transition: 'width 1.2s ease',
-                  background: s.done ? C.success : `linear-gradient(90deg, ${C.teal}, ${C.bright})`,
-                }} />
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                  flexWrap: 'wrap', gap: 8, marginBottom: 14,
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ color: C.text, fontWeight: 700, fontSize: 14, fontFamily: 'monospace' }}>{s.id}</span>
+                      <Badge color={allDone ? C.success : C.bright}>{s.carrier}</Badge>
+                      {inProgress && <Badge color={C.warning}>In Progress</Badge>}
+                      {allDone && <Badge color={C.success}>Delivered</Badge>}
+                    </div>
+                    <div style={{ color: C.muted, fontSize: 11, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span>{s.origin}</span>
+                      <span style={{ color: C.bright }}>→</span>
+                      <span>{s.destination}</span>
+                      <span style={{ margin: '0 4px', color: C.border }}>|</span>
+                      <Users size={11} style={{ color: C.muted }} />
+                      <span>{s.buyer}</span>
+                    </div>
+                  </div>
+                  {/* Progress ring */}
+                  <div style={{
+                    width: 50, height: 50, borderRadius: '50%',
+                    background: `conic-gradient(${allDone ? C.success : C.bright} ${progressPct}%, ${C.border} ${progressPct}%)`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <div style={{
+                      width: 38, height: 38, borderRadius: '50%', background: C.surface,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <span style={{ color: allDone ? C.success : C.bright, fontWeight: 800, fontSize: 12 }}>
+                        {progressPct}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tracking timeline */}
+                <div style={{ paddingLeft: 4 }}>
+                  {s.stages.map((st, j) => {
+                    const isLast = j === s.stages.length - 1;
+                    const dotColor = st.done ? C.success : st.current ? C.bright : C.border;
+                    const textColor = st.done ? C.text : st.current ? C.bright : C.muted;
+                    const dotShadow = st.current ? `0 0 10px ${C.bright}` : st.done ? `0 0 6px ${C.success}88` : 'none';
+                    return (
+                      <div key={j} style={{ display: 'flex', gap: 10, minHeight: isLast ? 0 : 42 }}>
+                        {/* Left rail */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
+                          <div style={{
+                            width: st.current ? 14 : 10,
+                            height: st.current ? 14 : 10,
+                            borderRadius: '50%',
+                            background: dotColor,
+                            boxShadow: dotShadow,
+                            border: st.current ? `3px solid ${C.bright}44` : st.done ? `2px solid ${C.success}44` : `2px solid ${C.border}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.3s',
+                            zIndex: 1,
+                            animation: st.current ? 'countUp 1.8s ease-in-out infinite' : 'none',
+                          }}>
+                            {st.done && <span style={{ color: '#fff', fontSize: 7 }}>✓</span>}
+                          </div>
+                          {!isLast && (
+                            <div style={{
+                              width: 2, flex: 1, minHeight: 8,
+                              background: st.done ? C.success : C.border,
+                              margin: '3px 0',
+                            }} />
+                          )}
+                        </div>
+                        {/* Content */}
+                        <div style={{
+                          paddingBottom: isLast ? 0 : 12,
+                          flex: 1, minWidth: 0,
+                        }}>
+                          <div style={{
+                            color: textColor, fontWeight: st.current ? 700 : st.done ? 600 : 400,
+                            fontSize: 13, marginBottom: 2, transition: 'color 0.3s',
+                          }}>
+                            {st.label}
+                          </div>
+                          <div style={{ color: st.done || st.current ? C.muted : C.border, fontSize: 11 }}>
+                            {st.loc} {st.date !== 'Pending' && <span>— {st.date}</span>}
+                            {st.date === 'Pending' && <span style={{ color: C.border, fontStyle: 'italic' }}>— Awaiting update</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {i < SHIPMENTS.length - 1 && <Divider />}
+                {i < SHIPMENTS.length - 1 && <div style={{ height: 8 }} />}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: C.muted, fontSize: 10 }}>Origin</span>
-                <span style={{ color: s.done ? C.success : C.bright, fontSize: 10, fontWeight: 600 }}>{s.pct}%</span>
-                <span style={{ color: C.muted, fontSize: 10 }}>Destination</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
     </div>
