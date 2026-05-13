@@ -1,0 +1,110 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Logxus Design Tokens — CSS custom properties
+   Light (default) and Dark themes via [data-theme]
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root,
+[data-theme="light"] {
+  /* color tokens */
+  --c-bg:          #E8E8E8;
+  --c-surface:     #FFFFFF;
+  --c-surface-hi:  #F5F5F5;
+  --c-teal:        #1E40FF;
+  --c-bright:      #4A6FFF;
+  --c-text:        #0A0A0A;
+  --c-muted:       #6B6B6B;
+  --c-success:     #00A847;
+  --c-warning:     #F39C12;
+  --c-danger:      #E91E63;
+  --c-border:      #EDEDED;
+
+  /* state-derived backgrounds */
+  --c-success-bg: #E8F8EC;
+  --c-danger-bg:  #FDECEF;
+  --c-hover-row:  #FAFAFA;
+
+  /* badge background opacity percentage */
+  --badge-pct: 8%;
+
+  /* shadows */
+  --s-card:       0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+  --s-card-hover: 0 4px 12px rgba(0,0,0,0.04);
+  --s-tooltip:    0 4px 12px rgba(0,0,0,0.06);
+  --s-drawer:     -12px 0 40px rgba(0,0,0,0.08);
+
+  /* radii */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+
+  /* timing */
+  --t-fast: 0.15s;
+  --t-med:  0.25s;
+
+  /* scrollbar */
+  --c-scrollbar-track: #E8E8E8;
+  --c-scrollbar-thumb: #D0D0D0;
+  --c-scrollbar-thumb-hover: #B0B0B0;
+}
+
+[data-theme="dark"] {
+  --c-bg:          #0D1B2A;
+  --c-surface:     #1C2B39;
+  --c-surface-hi:  #22334A;
+  --c-teal:        #16B4B2;
+  --c-bright:      #16B4B2;
+  --c-text:        #F4F6F8;
+  --c-muted:       #8B9AAD;
+  --c-success:     #2ECC71;
+  --c-warning:     #F39C12;
+  --c-danger:      #E74C3C;
+  --c-border:      #243447;
+
+  --c-success-bg: rgba(46,204,113,0.15);
+  --c-danger-bg:  rgba(231,76,60,0.15);
+  --c-hover-row:  rgba(255,255,255,0.03);
+
+  --badge-pct: 18%;
+
+  --s-card:       0 0 0 1px rgba(255,255,255,0.04);
+  --s-card-hover: 0 4px 12px rgba(0,0,0,0.3);
+  --s-tooltip:    0 4px 12px rgba(0,0,0,0.4);
+  --s-drawer:     -12px 0 40px rgba(0,0,0,0.45);
+
+  --c-scrollbar-track: #0D1B2A;
+  --c-scrollbar-thumb: #243447;
+  --c-scrollbar-thumb-hover: #0E7C7B;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Base styles (moved from index.html)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html, body {
+  background: var(--c-bg);
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--c-text);
+  transition: background-color var(--t-med) ease, color var(--t-med) ease;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--c-scrollbar-track); }
+::-webkit-scrollbar-thumb {
+  background: var(--c-scrollbar-thumb);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--c-scrollbar-thumb-hover); }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes countUp {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fade-in { animation: fadeIn 0.25s ease forwards; }

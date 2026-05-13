@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useTheme } from './hooks/useTheme.js';
 import {
   LayoutDashboard, Search, Users, Truck, Database, Settings,
   Bell, Upload, X, ArrowUp, ArrowDown, Package, Clock,
   ChevronRight, Filter, Plus, MapPin, Mail, Phone, FileText,
   TrendingUp, Send, Download, Calendar, Leaf, Zap, Globe,
+  Sun, Moon,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -12,20 +14,24 @@ import {
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
-  bg:          '#0D1B2A',
-  surface:     '#1C2B39',
-  surfaceHi:   '#22334A',
-  teal:        '#0E7C7B',
-  bright:      '#16B4B2',
-  text:        '#F4F6F8',
-  muted:       '#6B7A8D',
-  success:     '#2ECC71',
-  warning:     '#F39C12',
-  danger:      '#E74C3C',
-  border:      '#1E3248',
+  bg:        'var(--c-bg)',
+  surface:   'var(--c-surface)',
+  surfaceHi: 'var(--c-surface-hi)',
+  teal:      'var(--c-teal)',
+  bright:    'var(--c-bright)',
+  text:      'var(--c-text)',
+  muted:     'var(--c-muted)',
+  success:   'var(--c-success)',
+  warning:   'var(--c-warning)',
+  danger:    'var(--c-danger)',
+  border:    'var(--c-border)',
 };
-const glow  = { boxShadow: '0 0 16px rgba(14,124,123,0.4)' };
-const card  = { background: C.surface, borderRadius: 8, border: `1px solid ${C.border}` };
+const glow  = { boxShadow: 'var(--s-card)' };
+const card  = {
+  background: 'var(--c-surface)',
+  borderRadius: 'var(--r-lg)',
+  border: '1px solid var(--c-border)',
+};
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 const CHART_DATA = [
@@ -58,7 +64,7 @@ const ACTIVITY = [
   { dot: C.bright,   tag:'Sourcing',  text:'Supplier match found: Shenzhen PCB Co. — 94% match', time:'2 min ago' },
   { dot: C.warning,  tag:'Buyers',    text:'Buyer lead identified: TechHardware GmbH, Germany',  time:'1 hr ago'  },
   { dot: C.success,  tag:'Logistics', text:'Shipment DHL-883821 cleared customs',                 time:'3 hrs ago' },
-  { dot: C.muted,    tag:'Sourcing',  text:'RFQ package generated for BOM_v3.xlsx',              time:'Yesterday' },
+  { dot: C.border,  tag:'Sourcing',  text:'RFQ package generated for BOM_v3.xlsx',              time:'Yesterday' },
 ];
 
 const QUOTES = [
@@ -122,12 +128,10 @@ const SHIPMENTS = [
 // ─── Atoms ────────────────────────────────────────────────────────────────────
 function Badge({ children, color = C.bright, size = 'sm' }) {
   return (
-    <span style={{
-      background: `${color}22`, color, border: `1px solid ${color}44`,
-      borderRadius: 4, padding: size === 'sm' ? '2px 7px' : '4px 10px',
-      fontSize: size === 'sm' ? 11 : 12, fontWeight: 600, whiteSpace: 'nowrap',
-      letterSpacing: '0.03em',
-    }}>
+    <span
+      className={`lx-badge${size === 'lg' ? ' lx-badge--lg' : ''}`}
+      style={{ background: `color-mix(in srgb, ${color} var(--badge-pct), transparent)`, color }}
+    >
       {children}
     </span>
   );
@@ -142,20 +146,12 @@ function Divider() {
 }
 
 function Btn({ children, onClick, variant = 'primary', icon, style: sx = {}, fullWidth }) {
-  const base = {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    gap: 6, padding: '9px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-    cursor: 'pointer', border: 'none', transition: 'all 0.15s',
-    width: fullWidth ? '100%' : undefined,
-  };
-  const styles = {
-    primary: { background: C.teal, color: C.text, ...glow },
-    outline:  { background: 'transparent', color: C.bright, border: `1px solid ${C.bright}` },
-    ghost:    { background: 'transparent', color: C.muted, border: `1px solid ${C.border}` },
-    danger:   { background: C.danger, color: '#fff' },
-  };
   return (
-    <button onClick={onClick} style={{ ...base, ...styles[variant], ...sx }}>
+    <button
+      onClick={onClick}
+      className={`lx-btn lx-btn--${variant}${fullWidth ? ' lx-btn--full' : ''}`}
+      style={sx}
+    >
       {icon && <span style={{ display: 'flex' }}>{icon}</span>}
       {children}
     </button>
@@ -164,8 +160,7 @@ function Btn({ children, onClick, variant = 'primary', icon, style: sx = {}, ful
 
 function Card({ children, style: sx = {}, onClick, className }) {
   return (
-    <div onClick={onClick} className={className}
-      style={{ ...card, padding: 20, ...sx }}>
+    <div onClick={onClick} className={`lx-card${className ? ' ' + className : ''}`} style={sx}>
       {children}
     </div>
   );
@@ -173,10 +168,10 @@ function Card({ children, style: sx = {}, onClick, className }) {
 
 function SectionTitle({ icon, children, right }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-      {icon && <span style={{ color: C.bright, display: 'flex' }}>{icon}</span>}
-      <span style={{ color: C.text, fontWeight: 700, fontSize: 15 }}>{children}</span>
-      {right && <div style={{ marginLeft: 'auto' }}>{right}</div>}
+    <div className="lx-section-title">
+      {icon && <span className="lx-section-title__icon">{icon}</span>}
+      <span className="lx-section-title__text">{children}</span>
+      {right && <div className="lx-section-title__right">{right}</div>}
     </div>
   );
 }
@@ -191,50 +186,31 @@ const NAV = [
   { id: 'settings',  label: 'Settings',   Icon: Settings        },
 ];
 
-function Sidebar({ active, onNav, collapsed }) {
+function Sidebar({ active, onNav, collapsed, theme }) {
   return (
-    <aside style={{
-      width: collapsed ? 58 : 220, flexShrink: 0,
-      background: C.surface, borderRight: `1px solid ${C.border}`,
-      display: 'flex', flexDirection: 'column',
-      transition: 'width 0.25s ease', overflow: 'hidden',
-    }}>
+    <aside className={`lx-sidebar ${collapsed ? 'lx-sidebar--collapsed' : 'lx-sidebar--expanded'}`}>
       {/* Logo */}
-      <div style={{
-        padding: collapsed ? '18px 0' : '18px 16px',
-        display: 'flex', alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'flex-start',
-        gap: 8, borderBottom: `1px solid ${C.border}`, marginBottom: 8,
-      }}>
+      <div className="lx-sidebar__logo">
         {collapsed
-          ? <span style={{ color: C.bright, fontWeight: 900, fontSize: 17 }}>L</span>
+          ? <span className="lx-sidebar__logo-text" style={{ color: C.bright, fontSize: 17 }}>L</span>
           : <>
-              <span style={{ color: C.text, fontWeight: 900, fontSize: 19, letterSpacing: '0.1em' }}>LOGXUS</span>
-              <span style={{
-                width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                background: C.bright, boxShadow: `0 0 8px ${C.bright}`,
-              }} />
+              <span className="lx-sidebar__logo-text">LOGXUS</span>
+              <span className="lx-sidebar__logo-dot" />
             </>
         }
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: '0 6px' }}>
+      <nav className="lx-sidebar__nav">
         {NAV.map(({ id, label, Icon }) => {
           const active_ = active === id;
           return (
-            <button key={id} onClick={() => onNav(id)} title={collapsed ? label : undefined}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center',
-                gap: 10, padding: collapsed ? '11px 0' : '11px 10px',
-                justifyContent: collapsed ? 'center' : 'flex-start',
-                borderRadius: 7, marginBottom: 2, cursor: 'pointer',
-                border: 'none', borderLeft: active_ ? `3px solid ${C.bright}` : '3px solid transparent',
-                background: active_ ? `${C.teal}28` : 'transparent',
-                color: active_ ? C.bright : C.muted,
-                fontWeight: active_ ? 600 : 400, fontSize: 13,
-                transition: 'all 0.18s',
-              }}>
+            <button
+              key={id}
+              onClick={() => onNav(id)}
+              title={collapsed ? label : undefined}
+              className={`lx-sidebar__nav-item${active_ ? ' lx-sidebar__nav-item--active' : ''}`}
+            >
               <Icon size={17} />
               {!collapsed && label}
             </button>
@@ -242,8 +218,18 @@ function Sidebar({ active, onNav, collapsed }) {
         })}
       </nav>
 
+      {/* Theme toggle */}
+      <button
+        className="lx-sidebar__theme-toggle"
+        onClick={theme.toggle}
+        title={collapsed ? (theme.effective === 'dark' ? 'Dark Mode' : 'Light Mode') : undefined}
+      >
+        {theme.effective === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+        {!collapsed && (theme.effective === 'dark' ? 'Dark Mode' : 'Light Mode')}
+      </button>
+
       {!collapsed && (
-        <div style={{ padding: '10px 16px 16px', color: C.muted, fontSize: 10, letterSpacing: '0.06em' }}>
+        <div className="lx-sidebar__footer">
           v2.4.1 · GBA EDITION
         </div>
       )}
@@ -260,39 +246,22 @@ const PAGE_TITLE = {
 
 function Navbar({ page }) {
   return (
-    <header style={{
-      height: 58, background: C.surface, borderBottom: `1px solid ${C.border}`,
-      display: 'flex', alignItems: 'center', padding: '0 22px', gap: 14, flexShrink: 0,
-    }}>
-      <h1 style={{ color: C.text, fontSize: 17, fontWeight: 700, whiteSpace: 'nowrap' }}>
+    <header className="lx-navbar">
+      <h1 className="lx-navbar__title">
         {PAGE_TITLE[page] || 'Logxus'}
       </h1>
 
-      <div style={{ flex: 1, maxWidth: 360, position: 'relative', marginLeft: 12 }}>
-        <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.muted }} />
-        <input placeholder="Search suppliers, buyers, shipments…"
-          style={{
-            width: '100%', background: C.bg, border: `1px solid ${C.border}`,
-            borderRadius: 7, padding: '7px 10px 7px 30px',
-            color: C.text, fontSize: 12, outline: 'none',
-          }} />
+      <div className="lx-navbar__search-wrap">
+        <Search size={14} className="lx-navbar__search-icon" />
+        <input className="lx-navbar__search-input" placeholder="Search suppliers, buyers, shipments…" />
       </div>
 
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 18 }}>
-        <div style={{ position: 'relative', cursor: 'pointer' }}>
-          <Bell size={19} style={{ color: C.muted }} />
-          <span style={{
-            position: 'absolute', top: -4, right: -4, background: C.danger,
-            color: '#fff', borderRadius: '50%', width: 15, height: 15,
-            fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>3</span>
+      <div className="lx-navbar__actions">
+        <div className="lx-navbar__bell">
+          <Bell size={19} />
+          <span className="lx-navbar__bell-badge">3</span>
         </div>
-        <div style={{
-          width: 33, height: 33, borderRadius: '50%',
-          background: `linear-gradient(135deg, ${C.teal}, ${C.bright})`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', flexShrink: 0,
-        }}>EL</div>
+        <div className="lx-navbar__avatar">EL</div>
       </div>
     </header>
   );
@@ -302,26 +271,16 @@ function Navbar({ page }) {
 function KpiCard({ Icon, label, value, trend, up }) {
   return (
     <Card style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="lx-kpi__row">
         <div>
-          <div style={{ color: C.muted, fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 10 }}>
-            {label}
-          </div>
-          <div style={{ color: C.text, fontSize: 38, fontWeight: 800, lineHeight: 1 }}>{value}</div>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 3,
-            marginTop: 10, fontSize: 12, fontWeight: 600,
-            color: up ? C.success : C.danger,
-          }}>
+          <div className="lx-kpi__label">{label}</div>
+          <div className="lx-kpi__value">{value}</div>
+          <div className={`lx-kpi__trend ${up ? 'lx-kpi__trend--up' : 'lx-kpi__trend--down'}`}>
             {up ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
             {trend}
           </div>
         </div>
-        <div style={{
-          width: 42, height: 42, borderRadius: 10,
-          background: `${C.teal}22`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: C.bright, flexShrink: 0,
-        }}>
+        <div className="lx-kpi__icon">
           <Icon size={20} />
         </div>
       </div>
@@ -331,35 +290,32 @@ function KpiCard({ Icon, label, value, trend, up }) {
 
 function DashboardView({ onNav }) {
   return (
-    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="lx-dashboard">
       {/* KPIs */}
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+      <div className="lx-dashboard__kpi-row">
         <KpiCard Icon={Search} label="Active Sourcing Requests" value="12" trend="+3 this week" up />
         <KpiCard Icon={Users}  label="Open Buyer Leads"         value="47" trend="+8 this week" up />
         <KpiCard Icon={Truck}  label="Pending Shipments"        value="6"  trend="-1 this week" up={false} />
       </div>
 
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+      <div className="lx-dashboard__row">
         {/* Activity feed */}
         <Card style={{ flex: '1 1 300px', minWidth: 0 }}>
           <SectionTitle icon={<TrendingUp size={16} />}>Recent Activity</SectionTitle>
           {ACTIVITY.map((a, i) => (
-            <div key={i} style={{ display: 'flex', gap: 12, paddingBottom: i < ACTIVITY.length - 1 ? 16 : 0, position: 'relative' }}>
-              {i < ACTIVITY.length - 1 && (
-                <div style={{ position: 'absolute', left: 7, top: 16, bottom: 0, width: 2, background: C.border }} />
-              )}
-              <div style={{ width: 16, height: 16, borderRadius: '50%', background: a.dot, flexShrink: 0, marginTop: 2, boxShadow: `0 0 8px ${a.dot}88` }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4, flexWrap: 'wrap' }}>
+            <div key={i} className="lx-activity__item">
+              {i < ACTIVITY.length - 1 && <div className="lx-activity__line" />}
+              <div className="lx-activity__dot" style={{ background: a.dot }} />
+              <div className="lx-activity__body">
+                <div className="lx-activity__header">
                   <Badge color={a.dot}>{a.tag}</Badge>
-                  <span style={{ color: C.muted, fontSize: 11 }}>{a.time}</span>
+                  <span className="lx-activity__time">{a.time}</span>
                 </div>
-                <div style={{ color: C.text, fontSize: 13 }}>{a.text}</div>
+                <div className="lx-activity__text">{a.text}</div>
               </div>
             </div>
           ))}
         </Card>
-
       </div>
 
       {/* Chart */}
@@ -371,7 +327,7 @@ function DashboardView({ onNav }) {
           <AreaChart data={CHART_DATA} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
             <defs>
               <linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor={C.bright} stopOpacity={0.28} />
+                <stop offset="5%"  stopColor={C.bright} stopOpacity={0.18} />
                 <stop offset="95%" stopColor={C.bright} stopOpacity={0} />
               </linearGradient>
             </defs>
@@ -379,30 +335,28 @@ function DashboardView({ onNav }) {
             <XAxis dataKey="week" tick={{ fill: C.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: C.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
             <Tooltip
-              contentStyle={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12 }}
-              labelStyle={{ color: C.muted }}
-              cursor={{ stroke: C.border, strokeWidth: 1 }}
+              contentStyle={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, color: 'var(--c-text)', fontSize: 12, boxShadow: 'var(--s-tooltip)' }}
+              labelStyle={{ color: 'var(--c-muted)' }}
+              cursor={{ stroke: 'var(--c-border)', strokeWidth: 1 }}
             />
-            <Area type="monotone" dataKey="requests" stroke={C.bright} strokeWidth={2} fill="url(#tg)" dot={{ fill: C.bright, r: 3, strokeWidth: 0 }} />
+            <Area type="monotone" dataKey="requests" stroke={C.bright} strokeWidth={2.5} fill="url(#tg)" dot={{ fill: C.bright, r: 3, strokeWidth: 0 }} />
           </AreaChart>
         </ResponsiveContainer>
       </Card>
 
       {/* Buyers & Suppliers with Shipment Processes */}
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <Card className="lx-table-card">
+        <div className="lx-table-card__header">
           <Users size={15} style={{ color: C.bright }} />
-          <span style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Buyers & Suppliers</span>
+          <span className="lx-table-card__title">Buyers & Suppliers</span>
           <Badge>{BUYERS.length + SUPPLIERS.length} partners</Badge>
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
+        <div className="lx-table-card__scroll">
+          <table className="lx-table">
             <thead>
-              <tr style={{ background: `${C.bg}99` }}>
+              <tr className="lx-table__head">
                 {['Type', 'Name', 'Location', 'Shipment Route', 'Carrier', 'Transit', 'Status'].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', color: C.muted, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>
-                    {h}
-                  </th>
+                  <th key={h} className="lx-table__th">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -419,16 +373,16 @@ function DashboardView({ onNav }) {
                 })();
                 const statusColor = route.status === 'Delivered' ? C.success : route.status === 'In Transit' ? C.warning : route.status === 'Active' ? C.bright : C.muted;
                 return (
-                  <tr key={`b-${i}`} style={{ borderBottom: `1px solid ${C.border}`, transition: 'all 0.15s' }}>
-                    <td style={{ padding: '11px 16px' }}><Badge color="#60A5FA">Buyer</Badge></td>
-                    <td style={{ padding: '11px 16px', color: C.text, fontWeight: 600, fontSize: 13 }}>{b.flag} {b.name}</td>
-                    <td style={{ padding: '11px 16px', color: C.muted, fontSize: 12 }}>{b.contact}</td>
-                    <td style={{ padding: '11px 16px', color: C.text, fontSize: 12, fontFamily: 'monospace' }}>{route.route}</td>
-                    <td style={{ padding: '11px 16px', color: C.muted, fontSize: 12 }}>{route.carrier}</td>
-                    <td style={{ padding: '11px 16px', color: C.muted, fontSize: 12 }}>{route.transit}</td>
-                    <td style={{ padding: '11px 16px' }}>
-                      <span style={{ color: statusColor, fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, display: 'inline-block' }} />{route.status}
+                  <tr key={`b-${i}`} className="lx-table__row">
+                    <td className="lx-table__td"><Badge color="#60A5FA">Buyer</Badge></td>
+                    <td className="lx-table__td--name">{b.flag} {b.name}</td>
+                    <td className="lx-table__td">{b.contact}</td>
+                    <td className="lx-table__td--route">{route.route}</td>
+                    <td className="lx-table__td">{route.carrier}</td>
+                    <td className="lx-table__td">{route.transit}</td>
+                    <td className="lx-table__td">
+                      <span className="lx-table__status" style={{ color: statusColor }}>
+                        <span className="lx-table__status-dot" style={{ background: statusColor }} />{route.status}
                       </span>
                     </td>
                   </tr>
@@ -442,20 +396,20 @@ function DashboardView({ onNav }) {
                   return { route: '—', carrier: '—', transit: '—', status: 'Pending' };
                 })();
                 return (
-                  <tr key={`s-${i}`} style={{ borderBottom: `1px solid ${C.border}`, transition: 'all 0.15s' }}>
-                    <td style={{ padding: '11px 16px' }}><Badge color={C.success}>Supplier</Badge></td>
-                    <td style={{ padding: '11px 16px', color: C.text, fontWeight: 600, fontSize: 13 }}>{s.name}</td>
-                    <td style={{ padding: '11px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: C.muted, fontSize: 12 }}>
+                  <tr key={`s-${i}`} className="lx-table__row">
+                    <td className="lx-table__td"><Badge color={C.success}>Supplier</Badge></td>
+                    <td className="lx-table__td--name">{s.name}</td>
+                    <td className="lx-table__td">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <MapPin size={11} />{s.loc}
                       </div>
                     </td>
-                    <td style={{ padding: '11px 16px', color: C.text, fontSize: 12, fontFamily: 'monospace' }}>{route.route}</td>
-                    <td style={{ padding: '11px 16px', color: C.muted, fontSize: 12 }}>{route.carrier}</td>
-                    <td style={{ padding: '11px 16px', color: C.muted, fontSize: 12 }}>{route.transit}</td>
-                    <td style={{ padding: '11px 16px' }}>
-                      <span style={{ color: C.bright, fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.bright, display: 'inline-block' }} />{route.status}
+                    <td className="lx-table__td--route">{route.route}</td>
+                    <td className="lx-table__td">{route.carrier}</td>
+                    <td className="lx-table__td">{route.transit}</td>
+                    <td className="lx-table__td">
+                      <span className="lx-table__status" style={{ color: C.bright }}>
+                        <span className="lx-table__status-dot" style={{ background: C.bright }} />{route.status}
                       </span>
                     </td>
                   </tr>
@@ -487,23 +441,19 @@ function AnimatedPct({ target }) {
 
 function RfqModal({ onClose }) {
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 1000, padding: 24,
-    }}>
-      <div style={{ background: C.surface, borderRadius: 12, width: '100%', maxWidth: 640, border: `1px solid ${C.border}`, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-        <div style={{ padding: '18px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="lx-modal">
+      <div className="lx-modal__box">
+        <div className="lx-modal__header">
           <div>
             <div style={{ color: C.text, fontWeight: 700, fontSize: 16 }}>Bilingual RFQ Preview</div>
             <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>Auto-generated · EN | ZH · RFQ-2026-0134</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, display: 'flex' }}>
+          <button onClick={onClose} className="lx-drawer__close-btn">
             <X size={19} />
           </button>
         </div>
-        <div style={{ padding: 22 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div className="lx-modal__body">
+          <div className="lx-modal__grid">
             {[
               { flag: '🇬🇧', lang: 'English', lines: [
                 ['Request for Quotation', true],
@@ -528,19 +478,19 @@ function RfqModal({ onClose }) {
                 ['条款：净30天 · FOB深圳', false],
               ]},
             ].map(col => (
-              <div key={col.flag} style={{ background: C.bg, borderRadius: 8, padding: 16 }}>
-                <div style={{ color: C.bright, fontWeight: 700, fontSize: 12, marginBottom: 10 }}>{col.flag} {col.lang}</div>
+              <div key={col.flag} className="lx-modal__col">
+                <div className="lx-modal__col-title">{col.flag} {col.lang}</div>
                 {col.lines.map(([txt, bold], i) => (
-                  <div key={i} style={{ color: txt ? (bold ? C.text : C.muted) : 'transparent', fontWeight: bold ? 700 : 400, fontSize: 12, lineHeight: '1.8', minHeight: 21 }}>
+                  <div key={i} className={`lx-modal__col-line ${txt ? (bold ? 'lx-modal__col-line--bold' : 'lx-modal__col-line--muted') : ''}`} style={!txt ? { color: 'transparent' } : {}}>
                     {txt || ' '}
                   </div>
                 ))}
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end' }}>
-            <Btn variant="ghost" icon={<Download size={14} />} sx={{ fontSize: 12 }}>Download PDF</Btn>
-            <Btn variant="primary" icon={<Send size={14} />} style={{ ...glow, fontSize: 12 }}>Send via Email</Btn>
+          <div className="lx-modal__actions">
+            <Btn variant="ghost" icon={<Download size={14} />} style={{ fontSize: 12 }}>Download PDF</Btn>
+            <Btn variant="primary" icon={<Send size={14} />} style={{ fontSize: 12 }}>Send via Email</Btn>
           </div>
         </div>
       </div>
@@ -549,31 +499,25 @@ function RfqModal({ onClose }) {
 }
 
 function SupplierRow({ s }) {
-  const [hover, setHover] = useState(false);
   const pctColor = s.match >= 90 ? C.success : s.match >= 80 ? C.bright : C.warning;
   return (
-    <tr onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{
-        borderBottom: `1px solid ${C.border}`, transition: 'all 0.15s',
-        background: hover ? `${C.teal}12` : 'transparent',
-        borderLeft: hover ? `3px solid ${C.bright}` : '3px solid transparent',
-      }}>
-      <td style={{ padding: '12px 16px' }}>
+    <tr className="lx-supplier-row">
+      <td className="lx-table__td">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           {s.components.map(c => (
             <Badge key={c} color={C.teal} size="sm">{c}</Badge>
           ))}
         </div>
       </td>
-      <td style={{ padding: '12px 16px', color: C.text, fontWeight: 600, fontSize: 13 }}>{s.name}</td>
-      <td style={{ padding: '12px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: C.muted, fontSize: 12 }}>
+      <td className="lx-table__td--name">{s.name}</td>
+      <td className="lx-table__td">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <MapPin size={11} />{s.loc}
         </div>
       </td>
-      <td style={{ padding: '12px 16px' }}>
+      <td className="lx-table__td">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 54, height: 5, borderRadius: 3, background: C.border, overflow: 'hidden' }}>
+          <div className="lx-match-bar">
             <div style={{ width: `${s.match}%`, height: '100%', background: pctColor, borderRadius: 3 }} />
           </div>
           <span style={{ color: C.text, fontWeight: 700, fontSize: 13, minWidth: 36 }}>
@@ -581,10 +525,10 @@ function SupplierRow({ s }) {
           </span>
         </div>
       </td>
-      <td style={{ padding: '12px 16px', fontSize: 13 }}><Stars n={s.stars} /></td>
-      <td style={{ padding: '12px 16px', color: C.muted, fontSize: 13 }}>{s.lead}</td>
-      <td style={{ padding: '12px 16px', color: C.text, fontSize: 13 }}>{s.price}</td>
-      <td style={{ padding: '12px 16px' }}>
+      <td className="lx-table__td"><Stars n={s.stars} /></td>
+      <td className="lx-table__td">{s.lead}</td>
+      <td className="lx-table__td" style={{ color: C.text }}>{s.price}</td>
+      <td className="lx-table__td">
         <Btn variant="outline" style={{ padding: '5px 12px', fontSize: 11 }}>View RFQ</Btn>
       </td>
     </tr>
@@ -739,20 +683,20 @@ function SourcingView() {
   const hasActiveFilters = filterComponent || filterLocation || sortKey;
 
   return (
-    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="lx-sourcing">
       {/* ── Agentic AI Chatbox ── */}
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <Card className="lx-chatbox">
+        <div className="lx-chatbox__header">
           <Zap size={15} style={{ color: C.bright }} />
           <span style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Agentic AI Sourcing</span>
           <Badge color={C.success}>Online</Badge>
         </div>
 
         {/* Messages area */}
-        <div style={{ padding: '14px 18px', maxHeight: 260, overflowY: 'auto', background: C.bg }}>
+        <div className="lx-chatbox__messages">
           {messages.length === 0 && !aiThinking && (
-            <div style={{ color: C.muted, fontSize: 12, textAlign: 'center', padding: '20px 0', lineHeight: 1.8 }}>
-              <Zap size={22} style={{ color: C.border, marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
+            <div className="lx-chatbox__empty">
+              <Zap size={22} style={{ color: C.muted, marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
               Describe your product requirements and our agentic AI will analyze components<br />
               and match the best suppliers from the database.<br />
               <span style={{ color: C.bright }}>Try: "I need multilayer PCBs for IoT sensors"</span>
@@ -777,13 +721,8 @@ function SourcingView() {
                   {m.components.map(c => (
                     <button key={c}
                       onClick={() => handleFilterToggle('component', c)}
-                      style={{
-                        background: filterComponent === c ? C.teal : `${C.teal}22`,
-                        border: `1px solid ${filterComponent === c ? C.teal : `${C.teal}44`}`,
-                        color: filterComponent === c ? '#fff' : C.bright,
-                        borderRadius: 6, padding: '4px 11px', fontSize: 11, fontWeight: 600,
-                        cursor: 'pointer', transition: 'all 0.15s',
-                      }}>
+                      className={`lx-filter-chip${filterComponent === c ? ' lx-filter-chip--active' : ''}`}
+                      style={filterComponent === c ? undefined : { color: C.bright }}>
                       {c}
                     </button>
                   ))}
@@ -804,22 +743,15 @@ function SourcingView() {
         </div>
 
         {/* Chat input */}
-        <form onSubmit={handleChatSubmit}
-          style={{
-            padding: '10px 18px', borderTop: `1px solid ${C.border}`,
-            display: 'flex', gap: 8, alignItems: 'center',
-          }}>
+        <form onSubmit={handleChatSubmit} className="lx-chatbox__input-row">
           <input
             value={chatInput}
             onChange={e => setChatInput(e.target.value)}
             placeholder="Describe your product or paste BOM requirements..."
-            style={{
-              flex: 1, background: C.bg, border: `1px solid ${C.border}`,
-              borderRadius: 7, padding: '9px 14px', color: C.text, fontSize: 13, outline: 'none',
-            }}
+            className="lx-chatbox__input"
           />
           <Btn variant="primary" onClick={handleChatSubmit} icon={<Send size={14} />}
-            style={{ padding: '9px 16px', fontSize: 12, flexShrink: 0, ...glow }}>
+            style={{ padding: '9px 16px', fontSize: 12, flexShrink: 0 }}>
             Analyze
           </Btn>
         </form>
@@ -827,17 +759,13 @@ function SourcingView() {
 
       {/* ── Drop zone (secondary) ── */}
       <Card
-        style={{
-          border: `2px dashed ${dragging ? C.bright : C.border}`,
-          background: dragging ? `${C.teal}14` : C.surface,
-          textAlign: 'center', padding: '20px 20px', cursor: 'pointer', transition: 'all 0.2s',
-        }}
+        className={`lx-dropzone${dragging ? ' lx-dropzone--active' : ''}`}
         onClick={() => setUploaded(true)}
         onDragOver={e => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={e => { e.preventDefault(); setDragging(false); setUploaded(true); }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.muted, fontSize: 12 }}>
+        <div className="lx-dropzone__inner">
           <Upload size={16} style={{ color: dragging ? C.bright : C.muted }} />
           Drop PCB, CAD, BOM, or CNC files here &nbsp;—&nbsp; .gbr · .dxf · .xlsx · .step · .iges
         </div>
@@ -845,8 +773,8 @@ function SourcingView() {
 
       {/* ── AI Analysis panel ── */}
       {uploaded && detectedComponents.length > 0 && (
-        <Card style={{ border: `1px solid ${C.teal}55` }} className="fade-in">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <Card className="lx-ai-panel fade-in">
+          <div className="lx-ai-panel__header">
             <Zap size={15} style={{ color: C.bright }} />
             <span style={{ color: C.text, fontWeight: 700 }}>AI Component Analysis</span>
             <Badge color={C.success}>Complete</Badge>
@@ -854,14 +782,14 @@ function SourcingView() {
               {detectedComponents.length} components detected · Matched {processedSuppliers.length} suppliers
             </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+          <div className="lx-ai-panel__grid">
             {[
               { label: 'DETECTED COMPONENTS',   content: <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{detectedComponents.map(c => <Badge key={c} color={C.bright}>{c}</Badge>)}</div> },
               { label: 'MANUFACTURING PROCESS', content: <span style={{ color: C.text, fontWeight: 600, fontSize: 13 }}>PCB Manufacturing — Multi-layer assembly</span> },
               { label: 'QUALITY FLAGS',         content: <span style={{ color: C.warning, fontWeight: 600, fontSize: 13 }}>⚠ 2 advisory items — review recommended</span> },
             ].map(({ label, content }) => (
-              <div key={label} style={{ background: C.bg, borderRadius: 8, padding: 14 }}>
-                <div style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', marginBottom: 8 }}>{label}</div>
+              <div key={label} className="lx-ai-panel__cell">
+                <div className="lx-ai-panel__cell-label">{label}</div>
                 {content}
               </div>
             ))}
@@ -870,23 +798,15 @@ function SourcingView() {
       )}
 
       {/* ── Filter / Sort bar ── */}
-      <Card style={{ padding: '12px 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+      <Card className="lx-filter-bar">
+        <div className="lx-filter-bar__row">
           {/* Component filter */}
           <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ color: C.muted, fontSize: 10, letterSpacing: '0.05em', marginBottom: 7, textTransform: 'uppercase' }}>
-              Filter by Component
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            <div className="lx-filter-bar__label">Filter by Component</div>
+            <div className="lx-filter-bar__chips">
               {allComponents.map(c => (
                 <button key={c} onClick={() => handleFilterToggle('component', c)}
-                  style={{
-                    background: filterComponent === c ? C.teal : 'transparent',
-                    border: `1px solid ${filterComponent === c ? C.teal : C.border}`,
-                    color: filterComponent === c ? '#fff' : C.muted,
-                    borderRadius: 5, padding: '3px 9px', fontSize: 11, fontWeight: filterComponent === c ? 600 : 400,
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}>
+                  className={`lx-filter-chip${filterComponent === c ? ' lx-filter-chip--active' : ''}`}>
                   {c}
                 </button>
               ))}
@@ -895,19 +815,11 @@ function SourcingView() {
 
           {/* Location filter */}
           <div style={{ minWidth: 160 }}>
-            <div style={{ color: C.muted, fontSize: 10, letterSpacing: '0.05em', marginBottom: 7, textTransform: 'uppercase' }}>
-              Filter by Location
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            <div className="lx-filter-bar__label">Filter by Location</div>
+            <div className="lx-filter-bar__chips">
               {allLocations.map(loc => (
                 <button key={loc} onClick={() => handleFilterToggle('location', loc)}
-                  style={{
-                    background: filterLocation === loc ? C.teal : 'transparent',
-                    border: `1px solid ${filterLocation === loc ? C.teal : C.border}`,
-                    color: filterLocation === loc ? '#fff' : C.muted,
-                    borderRadius: 5, padding: '3px 9px', fontSize: 11, fontWeight: filterLocation === loc ? 600 : 400,
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}>
+                  className={`lx-filter-chip${filterLocation === loc ? ' lx-filter-chip--active' : ''}`}>
                   <MapPin size={10} style={{ marginRight: 2, verticalAlign: 'middle' }} />
                   {loc}
                 </button>
@@ -930,9 +842,9 @@ function SourcingView() {
       </Card>
 
       {/* ── Supplier table ── */}
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Supplier Matches</span>
+      <Card className="lx-table-card">
+        <div className="lx-table-card__header">
+          <span className="lx-table-card__title">Supplier Matches</span>
           <Badge>{processedSuppliers.length} of {SUPPLIERS.length} results</Badge>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             {sortKey && (
@@ -943,10 +855,10 @@ function SourcingView() {
             )}
           </div>
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
+        <div className="lx-table-card__scroll">
+          <table className="lx-table lx-sourcing-table">
             <thead>
-              <tr style={{ background: `${C.bg}99` }}>
+              <tr className="lx-table__head">
                 {[
                   { label: 'Component',     key: null },
                   { label: 'Supplier Name', key: null },
@@ -959,14 +871,7 @@ function SourcingView() {
                 ].map(({ label, key }) => (
                   <th key={label}
                     onClick={key ? () => handleSort(key) : undefined}
-                    style={{
-                      padding: '10px 16px', textAlign: 'left', color: C.muted, fontSize: 10,
-                      fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
-                      borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap',
-                      cursor: key ? 'pointer' : 'default',
-                      userSelect: 'none',
-                      transition: 'color 0.15s',
-                    }}>
+                    className={`lx-table__th${key ? ' lx-table__th--sortable' : ''}`}>
                     {label}{key && sortIndicator(key)}
                   </th>
                 ))}
@@ -977,7 +882,7 @@ function SourcingView() {
                 processedSuppliers.map((s, i) => <SupplierRow key={i} s={s} />)
               ) : (
                 <tr>
-                  <td colSpan={8} style={{ padding: '40px 16px', textAlign: 'center', color: C.muted, fontSize: 13 }}>
+                  <td colSpan={8} className="lx-table__empty">
                     No suppliers match the current filters.
                     <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.bright, cursor: 'pointer', fontWeight: 600, marginLeft: 4, fontSize: 13 }}>
                       Clear filters
@@ -991,7 +896,7 @@ function SourcingView() {
       </Card>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Btn variant="primary" onClick={() => setShowRfq(true)} icon={<FileText size={15} />} style={{ padding: '11px 24px', fontSize: 14, ...glow }}>
+        <Btn variant="primary" onClick={() => setShowRfq(true)} icon={<FileText size={15} />} style={{ padding: '11px 24px', fontSize: 14 }}>
           Generate RFQ Package
         </Btn>
       </div>
@@ -1003,25 +908,20 @@ function SourcingView() {
 
 // ─── Buyers ───────────────────────────────────────────────────────────────────
 function BuyerCard({ b, selected, onClick }) {
-  const [hover, setHover] = useState(false);
   return (
     <div onClick={() => onClick(b)}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{
-        background: selected ? `${C.teal}28` : hover ? C.surfaceHi : C.bg,
-        border: `1px solid ${selected ? C.teal : hover ? `${C.bright}55` : C.border}`,
-        borderRadius: 8, padding: 13, cursor: 'pointer', marginBottom: 8, transition: 'all 0.18s',
-      }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 5 }}>
-        <div style={{ color: C.text, fontWeight: 600, fontSize: 13 }}>{b.flag} {b.name}</div>
+      className={`lx-buyer-card${selected ? ' lx-buyer-card--selected' : ''}`}
+    >
+      <div className="lx-buyer-card__top">
+        <div className="lx-buyer-card__name">{b.flag} {b.name}</div>
         <Badge color={b.fit >= 88 ? C.success : b.fit >= 78 ? C.bright : C.warning} size="sm">
           {b.fit}%
         </Badge>
       </div>
-      <div style={{ color: C.muted, fontSize: 11, marginBottom: 8 }}>{b.interest}</div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: C.muted, fontSize: 10 }}>Last: {b.lastContact}</span>
-        <span style={{ color: C.bright, fontSize: 11, fontWeight: 500 }}>Details →</span>
+      <div className="lx-buyer-card__interest">{b.interest}</div>
+      <div className="lx-buyer-card__bottom">
+        <span className="lx-buyer-card__last-contact">Last: {b.lastContact}</span>
+        <span className="lx-buyer-card__cta">Details →</span>
       </div>
     </div>
   );
@@ -1032,42 +932,37 @@ function BuyerDrawer({ b, onClose }) {
   const initials = b.contact.split(' ').map(n => n[0]).join('');
 
   return (
-    <div style={{
-      position: 'fixed', right: 0, top: 0, bottom: 0, width: 360,
-      background: C.surface, borderLeft: `1px solid ${C.border}`,
-      zIndex: 400, display: 'flex', flexDirection: 'column',
-      boxShadow: '-12px 0 40px rgba(0,0,0,0.45)', overflowY: 'auto',
-    }} className="fade-in">
+    <div className="lx-drawer fade-in">
       {/* Header */}
-      <div style={{ padding: '18px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexShrink: 0 }}>
+      <div className="lx-drawer__header">
         <div>
-          <div style={{ color: C.text, fontWeight: 700, fontSize: 17 }}>{b.flag} {b.name}</div>
-          <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+          <div className="lx-drawer__name">{b.flag} {b.name}</div>
+          <div className="lx-drawer__badges">
             <Badge color={b.fit >= 88 ? C.success : C.bright} size="sm">{b.fit}% fit</Badge>
             <Badge color={C.muted} size="sm">{b.interest}</Badge>
             <Badge color={C.teal} size="sm">{b.stage}</Badge>
           </div>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, display: 'flex', marginTop: 2 }}>
+        <button onClick={onClose} className="lx-drawer__close-btn">
           <X size={18} />
         </button>
       </div>
 
-      <div style={{ flex: 1, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="lx-drawer__body">
         {/* Fit score bar */}
-        <div style={{ background: C.bg, borderRadius: 8, padding: 14 }}>
-          <div style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', marginBottom: 10 }}>FIT SCORE</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ flex: 1, height: 8, background: C.border, borderRadius: 4, overflow: 'hidden' }}>
-              <div style={{ width: `${b.fit}%`, height: '100%', background: `linear-gradient(90deg, ${C.teal}, ${C.bright})`, borderRadius: 4, transition: 'width 0.8s ease' }} />
+        <div className="lx-drawer__section">
+          <div className="lx-drawer__section-label">FIT SCORE</div>
+          <div className="lx-drawer__fit-bar">
+            <div className="lx-drawer__fit-track">
+              <div className="lx-drawer__fit-fill" style={{ width: `${b.fit}%` }} />
             </div>
-            <span style={{ color: C.text, fontWeight: 800, fontSize: 20, minWidth: 46 }}>{b.fit}%</span>
+            <span className="lx-drawer__fit-value">{b.fit}%</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+          <div className="lx-drawer__fit-grid">
             {['Product Fit','Market Fit','Budget Fit','Timeline'].map((l, i) => (
-              <div key={l} style={{ textAlign: 'center' }}>
-                <div style={{ color: C.muted, fontSize: 9, letterSpacing: '0.04em' }}>{l}</div>
-                <div style={{ color: C.bright, fontSize: 11, fontWeight: 700, marginTop: 2 }}>
+              <div key={l} className="lx-drawer__fit-cell">
+                <div className="lx-drawer__fit-cell-label">{l}</div>
+                <div className="lx-drawer__fit-cell-value">
                   {[b.fit - 3, b.fit + 2, b.fit - 6, b.fit - 1][i]}%
                 </div>
               </div>
@@ -1076,19 +971,17 @@ function BuyerDrawer({ b, onClose }) {
         </div>
 
         {/* Contact */}
-        <div style={{ background: C.bg, borderRadius: 8, padding: 14 }}>
-          <div style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', marginBottom: 10 }}>CONTACT</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${C.teal}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.bright, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
-              {initials}
-            </div>
-            <span style={{ color: C.text, fontWeight: 600, fontSize: 13 }}>{b.contact}</span>
+        <div className="lx-drawer__section">
+          <div className="lx-drawer__section-label">CONTACT</div>
+          <div className="lx-drawer__contact-row">
+            <div className="lx-drawer__contact-avatar">{initials}</div>
+            <span className="lx-drawer__contact-name">{b.contact}</span>
           </div>
           {[
             { Icon: Mail,  val: b.email },
             { Icon: Phone, val: b.phone },
           ].map(({ Icon, val }) => (
-            <div key={val} style={{ display: 'flex', alignItems: 'center', gap: 7, color: C.muted, fontSize: 12, marginBottom: 5 }}>
+            <div key={val} className="lx-drawer__contact-info">
               <Icon size={11} />{val}
             </div>
           ))}
@@ -1096,17 +989,17 @@ function BuyerDrawer({ b, onClose }) {
 
         {/* Activity */}
         <div>
-          <div style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', marginBottom: 10 }}>ACTIVITY LOG</div>
+          <div className="lx-drawer__section-label">ACTIVITY LOG</div>
           {[
             { date: 'May 8, 2026',  text: 'Initial email sent with product catalog' },
             { date: 'May 5, 2026',  text: 'LinkedIn connection accepted' },
             { date: 'Apr 28, 2026', text: 'Lead identified via AI discovery engine' },
           ].map((a, i) => (
-            <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.bright, marginTop: 5, flexShrink: 0 }} />
+            <div key={i} className="lx-drawer__activity-item">
+              <div className="lx-drawer__activity-dot" />
               <div>
-                <div style={{ color: C.text, fontSize: 12, lineHeight: 1.5 }}>{a.text}</div>
-                <div style={{ color: C.muted, fontSize: 10, marginTop: 2 }}>{a.date}</div>
+                <div className="lx-drawer__activity-text">{a.text}</div>
+                <div className="lx-drawer__activity-date">{a.date}</div>
               </div>
             </div>
           ))}
@@ -1114,21 +1007,15 @@ function BuyerDrawer({ b, onClose }) {
 
         {/* Notes */}
         <div>
-          <div style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', marginBottom: 8 }}>NOTES</div>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)}
-            style={{
-              width: '100%', background: C.bg, border: `1px solid ${C.border}`,
-              borderRadius: 8, padding: 10, color: C.text, fontSize: 12,
-              resize: 'vertical', minHeight: 76, outline: 'none',
-              lineHeight: 1.6, boxSizing: 'border-box',
-            }} />
+          <div className="lx-drawer__section-label">NOTES</div>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} className="lx-drawer__notes" />
         </div>
 
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Btn variant="ghost"   icon={<Plus size={13} />}        fullWidth>Add Note</Btn>
           <Btn variant="ghost"   icon={<Calendar size={13} />}    fullWidth>Schedule Follow-up</Btn>
-          <Btn variant="primary" icon={<ChevronRight size={13} />} fullWidth style={glow}>Move to Next Stage</Btn>
+          <Btn variant="primary" icon={<ChevronRight size={13} />} fullWidth>Move to Next Stage</Btn>
         </div>
       </div>
     </div>
@@ -1139,55 +1026,49 @@ function BuyersView() {
   const [selected, setSelected] = useState(null);
 
   return (
-    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 18, position: 'relative' }}>
+    <div className="lx-buyers">
       {/* Search */}
-      <div style={{ position: 'relative' }}>
-        <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted }} />
-        <input placeholder="Describe your product or target market to find matching buyers…"
-          style={{
-            width: '100%', background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: 8, padding: '11px 130px 11px 36px', color: C.text, fontSize: 13, outline: 'none',
-          }} />
-        <Btn variant="primary" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', padding: '6px 16px', fontSize: 12, ...glow }}>
-          AI Match
-        </Btn>
+      <div className="lx-buyers__search-wrap">
+        <Search size={15} className="lx-buyers__search-icon" />
+        <input className="lx-buyers__search-input" placeholder="Describe your product or target market to find matching buyers…" />
+        <Btn variant="primary" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', padding: '6px 16px', fontSize: 12 }}>AI Match</Btn>
       </div>
 
       {/* Stats bar */}
-      <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+      <div className="lx-buyers__stats">
         {[
           { label: 'Total Leads', val: '47', color: C.bright },
           { label: 'Avg Fit Score', val: '81%', color: C.success },
           { label: 'This Week', val: '+8', color: C.warning },
         ].map(s => (
           <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: s.color, fontWeight: 700, fontSize: 18 }}>{s.val}</span>
-            <span style={{ color: C.muted, fontSize: 12 }}>{s.label}</span>
-            <div style={{ width: 1, height: 16, background: C.border, marginLeft: 8 }} />
+            <span className="lx-buyers__stat-value" style={{ color: s.color }}>{s.val}</span>
+            <span className="lx-buyers__stat-label">{s.label}</span>
+            <div className="lx-buyers__stat-divider" />
           </div>
         ))}
       </div>
 
       {/* Kanban */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+      <div className="lx-kanban">
         {KANBAN_COLS.map(col => {
           const colBuyers = BUYERS.filter(b => b.stage === col);
           const colColor = { Identified: C.muted, Contacted: C.warning, Engaged: C.bright, Relationship: C.success }[col];
           return (
             <div key={col}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: colColor }} />
-                <span style={{ color: C.text, fontWeight: 600, fontSize: 13 }}>{col}</span>
-                <span style={{ background: `${colColor}22`, color: colColor, borderRadius: 10, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>
+              <div className="lx-kanban__col-header">
+                <div className="lx-kanban__col-dot" style={{ background: colColor }} />
+                <span className="lx-kanban__col-label">{col}</span>
+                <span className="lx-kanban__col-count" style={{ background: `${colColor}22`, color: colColor }}>
                   {colBuyers.length}
                 </span>
               </div>
-              <div style={{ background: `${C.bg}99`, borderRadius: 8, padding: 8, minHeight: 180, border: `1px solid ${C.border}` }}>
+              <div className="lx-kanban__col-body">
                 {colBuyers.map(b => (
                   <BuyerCard key={b.id} b={b} selected={selected?.id === b.id} onClick={setSelected} />
                 ))}
                 {colBuyers.length === 0 && (
-                  <div style={{ color: C.muted, fontSize: 12, textAlign: 'center', paddingTop: 28, lineHeight: 1.6 }}>
+                  <div className="lx-kanban__col-empty">
                     No buyers<br />in this stage
                   </div>
                 )}
@@ -1212,53 +1093,48 @@ function LogisticsView() {
   const [weight, setWeight] = useState('2.5');
 
   return (
-    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="lx-logistics">
       {/* Quote form */}
       <Card>
         <SectionTitle icon={<Globe size={16} />}>Get Shipping Quotes</SectionTitle>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div className="lx-quote-form__fields">
           <div>
-            <label style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>FROM</label>
-            <select style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 7, padding: '9px 12px', color: C.text, fontSize: 13, outline: 'none' }}>
+            <label className="lx-quote-form__label">FROM</label>
+            <select className="lx-quote-form__input">
               <option>Hong Kong</option>
               <option>Shenzhen</option>
               <option>Guangzhou</option>
             </select>
           </div>
           <div>
-            <label style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>TO</label>
-            <input value={dest} onChange={e => setDest(e.target.value)}
-              style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 7, padding: '9px 12px', color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+            <label className="lx-quote-form__label">TO</label>
+            <input value={dest} onChange={e => setDest(e.target.value)} className="lx-quote-form__input" />
           </div>
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>CARGO TYPE</label>
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          <label className="lx-quote-form__label">CARGO TYPE</label>
+          <div className="lx-quote-form__chips">
             {['Parcel', 'Air Freight', 'Ocean FCL', 'Ocean LCL'].map(t => (
-              <button key={t} onClick={() => setCargoType(t)} style={{
-                padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 500,
-                background: cargoType === t ? C.teal : 'transparent',
-                color: cargoType === t ? '#fff' : C.muted,
-                border: `1px solid ${cargoType === t ? C.teal : C.border}`, transition: 'all 0.15s',
-              }}>{t}</button>
+              <button key={t} onClick={() => setCargoType(t)}
+                className={`lx-quote-form__chip${cargoType === t ? ' lx-quote-form__chip--active' : ''}`}>
+                {t}
+              </button>
             ))}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 180px', gap: 14, marginBottom: 18 }}>
+        <div className="lx-quote-form__row">
           <div>
-            <label style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>WEIGHT (KG)</label>
-            <input value={weight} onChange={e => setWeight(e.target.value)}
-              style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 7, padding: '9px 12px', color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+            <label className="lx-quote-form__label">WEIGHT (KG)</label>
+            <input value={weight} onChange={e => setWeight(e.target.value)} className="lx-quote-form__input" />
           </div>
           <div>
-            <label style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>DIMENSIONS (CM)</label>
-            <input defaultValue="30 × 20 × 15"
-              style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 7, padding: '9px 12px', color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+            <label className="lx-quote-form__label">DIMENSIONS (CM)</label>
+            <input defaultValue="30 × 20 × 15" className="lx-quote-form__input" />
           </div>
           <div>
-            <label style={{ color: C.muted, fontSize: 10, letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>URGENCY</label>
+            <label className="lx-quote-form__label">URGENCY</label>
             <div style={{ display: 'flex', border: `1px solid ${C.border}`, borderRadius: 7, overflow: 'hidden' }}>
               {['Standard', 'Express'].map(u => (
                 <button key={u} onClick={() => setUrgency(u)} style={{
@@ -1271,17 +1147,17 @@ function LogisticsView() {
           </div>
         </div>
 
-        <Btn variant="primary" onClick={() => setQuotesLoaded(true)} icon={<ChevronRight size={15} />} style={{ ...glow, padding: '10px 22px', fontSize: 13 }}>
+        <Btn variant="primary" onClick={() => setQuotesLoaded(true)} icon={<ChevronRight size={15} />} style={{ padding: '10px 22px', fontSize: 13 }}>
           Get Quotes
         </Btn>
       </Card>
 
       {/* Results */}
       {quotesLoaded && (
-        <Card style={{ padding: 0, overflow: 'hidden' }} className="fade-in">
-          <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Card className="lx-table-card fade-in">
+          <div className="lx-table-card__header" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Available Quotes</span>
+              <span className="lx-table-card__title">Available Quotes</span>
               <Badge color={C.success}>4 options</Badge>
             </div>
             <div style={{ display: 'flex', border: `1px solid ${C.border}`, borderRadius: 6, overflow: 'hidden' }}>
@@ -1294,44 +1170,40 @@ function LogisticsView() {
               ))}
             </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 580 }}>
+          <div className="lx-table-card__scroll">
+            <table className="lx-table lx-quote-table">
               <thead>
-                <tr style={{ background: `${C.bg}99` }}>
+                <tr className="lx-table__head">
                   {['Carrier', 'Service', 'Transit', 'Price', 'CO₂ Est.', ''].map(h => (
-                    <th key={h} style={{ padding: '9px 16px', textAlign: 'left', color: C.muted, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>
-                      {h}
-                    </th>
+                    <th key={h} className="lx-table__th">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {QUOTES.map((q, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: '13px 16px' }}>
-                      <span style={{ background: q.col, color: '#fff', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                        {q.carrier}
-                      </span>
+                  <tr key={i} className="lx-table__row">
+                    <td className="lx-table__td">
+                      <span className="lx-quote-carrier" style={{ background: q.col, color: '#fff' }}>{q.carrier}</span>
                     </td>
-                    <td style={{ padding: '13px 16px', color: C.text, fontSize: 13 }}>{q.service}</td>
-                    <td style={{ padding: '13px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: C.muted, fontSize: 12 }}>
+                    <td className="lx-table__td" style={{ color: C.text }}>{q.service}</td>
+                    <td className="lx-table__td">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <Clock size={11} />{q.transit}
                       </div>
                     </td>
-                    <td style={{ padding: '13px 16px' }}>
+                    <td className="lx-table__td">
                       <span style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>
                         {currency === 'HKD' ? `$${q.hkd}` : `$${q.usd}`}
                       </span>
                       <span style={{ color: C.muted, fontSize: 11, marginLeft: 4 }}>{currency}</span>
                     </td>
-                    <td style={{ padding: '13px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: C.success, fontSize: 12 }}>
+                    <td className="lx-table__td">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: C.success }}>
                         <Leaf size={11} />{q.co2} CO₂
                       </div>
                     </td>
-                    <td style={{ padding: '13px 16px' }}>
-                      <Btn variant="primary" style={{ padding: '6px 16px', fontSize: 11, ...glow }}>Book Now</Btn>
+                    <td className="lx-table__td">
+                      <Btn variant="primary" style={{ padding: '6px 16px', fontSize: 11 }}>Book Now</Btn>
                     </td>
                   </tr>
                 ))}
@@ -1344,7 +1216,7 @@ function LogisticsView() {
       {/* Active shipments — FedEx-style tracking */}
       <Card>
         <SectionTitle icon={<Package size={16} />}>Active Shipments</SectionTitle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+        <div className="lx-shipments">
           {SHIPMENTS.map((s, i) => {
             const allDone = s.stages.every(st => st.done);
             const inProgress = s.stages.find(st => st.current);
@@ -1353,38 +1225,29 @@ function LogisticsView() {
             return (
               <div key={i}>
                 {/* Shipment header */}
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                  flexWrap: 'wrap', gap: 8, marginBottom: 14,
-                }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <span style={{ color: C.text, fontWeight: 700, fontSize: 14, fontFamily: 'monospace' }}>{s.id}</span>
+                <div className="lx-shipment__header">
+                  <div className="lx-shipment__info">
+                    <div className="lx-shipment__id-row">
+                      <span className="lx-shipment__id">{s.id}</span>
                       <Badge color={allDone ? C.success : C.bright}>{s.carrier}</Badge>
                       {inProgress && <Badge color={C.warning}>In Progress</Badge>}
                       {allDone && <Badge color={C.success}>Delivered</Badge>}
                     </div>
-                    <div style={{ color: C.muted, fontSize: 11, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div className="lx-shipment__route">
                       <span>{s.origin}</span>
-                      <span style={{ color: C.bright }}>→</span>
+                      <span className="lx-shipment__arrow">→</span>
                       <span>{s.destination}</span>
-                      <span style={{ margin: '0 4px', color: C.border }}>|</span>
+                      <span className="lx-shipment__pipe">|</span>
                       <Users size={11} style={{ color: C.muted }} />
                       <span>{s.buyer}</span>
                     </div>
                   </div>
                   {/* Progress ring */}
-                  <div style={{
-                    width: 50, height: 50, borderRadius: '50%',
+                  <div className="lx-progress-ring" style={{
                     background: `conic-gradient(${allDone ? C.success : C.bright} ${progressPct}%, ${C.border} ${progressPct}%)`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
                   }}>
-                    <div style={{
-                      width: 38, height: 38, borderRadius: '50%', background: C.surface,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <span style={{ color: allDone ? C.success : C.bright, fontWeight: 800, fontSize: 12 }}>
+                    <div className="lx-progress-ring__inner">
+                      <span className="lx-progress-ring__pct" style={{ color: allDone ? C.success : C.bright }}>
                         {progressPct}%
                       </span>
                     </div>
@@ -1392,52 +1255,29 @@ function LogisticsView() {
                 </div>
 
                 {/* Tracking timeline */}
-                <div style={{ paddingLeft: 4 }}>
+                <div className="lx-timeline">
                   {s.stages.map((st, j) => {
                     const isLast = j === s.stages.length - 1;
-                    const dotColor = st.done ? C.success : st.current ? C.bright : C.border;
-                    const textColor = st.done ? C.text : st.current ? C.bright : C.muted;
-                    const dotShadow = st.current ? `0 0 10px ${C.bright}` : st.done ? `0 0 6px ${C.success}88` : 'none';
+                    const dotClass = st.done ? 'lx-timeline__dot--done' : st.current ? 'lx-timeline__dot--current' : 'lx-timeline__dot--pending';
+                    const labelClass = st.done ? 'lx-timeline__label--done' : st.current ? 'lx-timeline__label--current' : 'lx-timeline__label--pending';
+                    const detailClass = st.date === 'Pending' ? ' lx-timeline__detail--pending' : '';
                     return (
-                      <div key={j} style={{ display: 'flex', gap: 10, minHeight: isLast ? 0 : 42 }}>
+                      <div key={j} className="lx-timeline__step">
                         {/* Left rail */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
-                          <div style={{
-                            width: st.current ? 14 : 10,
-                            height: st.current ? 14 : 10,
-                            borderRadius: '50%',
-                            background: dotColor,
-                            boxShadow: dotShadow,
-                            border: st.current ? `3px solid ${C.bright}44` : st.done ? `2px solid ${C.success}44` : `2px solid ${C.border}`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.3s',
-                            zIndex: 1,
-                            animation: st.current ? 'countUp 1.8s ease-in-out infinite' : 'none',
-                          }}>
-                            {st.done && <span style={{ color: '#fff', fontSize: 7 }}>✓</span>}
+                        <div className="lx-timeline__rail">
+                          <div className={`lx-timeline__dot ${dotClass}`}>
+                            {st.done && <span className="lx-timeline__dot-check">✓</span>}
                           </div>
                           {!isLast && (
-                            <div style={{
-                              width: 2, flex: 1, minHeight: 8,
-                              background: st.done ? C.success : C.border,
-                              margin: '3px 0',
-                            }} />
+                            <div className={`lx-timeline__connector ${st.done ? 'lx-timeline__connector--done' : 'lx-timeline__connector--pending'}`} />
                           )}
                         </div>
                         {/* Content */}
-                        <div style={{
-                          paddingBottom: isLast ? 0 : 12,
-                          flex: 1, minWidth: 0,
-                        }}>
-                          <div style={{
-                            color: textColor, fontWeight: st.current ? 700 : st.done ? 600 : 400,
-                            fontSize: 13, marginBottom: 2, transition: 'color 0.3s',
-                          }}>
-                            {st.label}
-                          </div>
-                          <div style={{ color: st.done || st.current ? C.muted : C.border, fontSize: 11 }}>
+                        <div className={`lx-timeline__content ${isLast ? 'lx-timeline__step:last-child' : ''}`}>
+                          <div className={`lx-timeline__label ${labelClass}`}>{st.label}</div>
+                          <div className={`lx-timeline__detail${detailClass}`}>
                             {st.loc} {st.date !== 'Pending' && <span>— {st.date}</span>}
-                            {st.date === 'Pending' && <span style={{ color: C.border, fontStyle: 'italic' }}>— Awaiting update</span>}
+                            {st.date === 'Pending' && <span>— Awaiting update</span>}
                           </div>
                         </div>
                       </div>
@@ -1456,13 +1296,56 @@ function LogisticsView() {
   );
 }
 
+// ─── Settings ─────────────────────────────────────────────────────────────────
+function SettingsView({ theme }) {
+  return (
+    <div className="lx-settings">
+      <Card>
+        <SectionTitle icon={<Settings size={16} />}>Appearance</SectionTitle>
+        <p className="lx-settings__p">
+          System automatically follows your device's preference.
+        </p>
+        <div className="lx-settings__radio-group">
+          {[
+            { value: 'system', label: 'System', hint: 'Follows your device theme' },
+            { value: 'light',  label: 'Light',  hint: 'Always use light mode' },
+            { value: 'dark',   label: 'Dark',   hint: 'Always use dark mode' },
+          ].map(({ value, label, hint }) => (
+            <label key={value}
+              className={`lx-settings__radio-row${theme.preference === value ? ' lx-settings__radio-row--active' : ''}`}>
+              <input
+                type="radio"
+                name="theme"
+                value={value}
+                checked={theme.preference === value}
+                onChange={() => theme.setTheme(value)}
+                className="lx-settings__radio-input"
+              />
+              <div>
+                <div className="lx-settings__radio-label">{label}</div>
+                <div className="lx-settings__radio-hint">{hint}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <div className="lx-settings__placeholder">
+          More settings coming soon
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 // ─── Placeholder ──────────────────────────────────────────────────────────────
 function ComingSoon({ label }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 12 }}>
-      <Database size={48} style={{ color: C.border }} />
-      <div style={{ color: C.muted, fontSize: 15 }}>{label} — Coming soon</div>
-      <div style={{ color: C.muted, fontSize: 12 }}>This section is under active development.</div>
+    <div className="lx-coming-soon">
+      <Database size={48} className="lx-coming-soon__icon" />
+      <div className="lx-coming-soon__title">{label} — Coming soon</div>
+      <div className="lx-coming-soon__sub">This section is under active development.</div>
     </div>
   );
 }
@@ -1472,6 +1355,7 @@ export default function App() {
   const [page, setPage] = useState('dashboard');
   const [collapsed, setCollapsed] = useState(false);
   const [visible, setVisible] = useState(true);
+  const theme = useTheme();
 
   useEffect(() => {
     const check = () => setCollapsed(window.innerWidth < 768);
@@ -1491,7 +1375,7 @@ export default function App() {
     buyers:    <BuyersView />,
     logistics: <LogisticsView />,
     data:      <ComingSoon label="Data & Reports" />,
-    settings:  <ComingSoon label="Settings" />,
+    settings:  <SettingsView theme={theme} />,
   }[page];
 
   return (
@@ -1499,7 +1383,7 @@ export default function App() {
       display: 'flex', height: '100vh', background: C.bg,
       color: C.text, fontFamily: "'Inter', system-ui, sans-serif", overflow: 'hidden',
     }}>
-      <Sidebar active={page} onNav={navigate} collapsed={collapsed} />
+      <Sidebar active={page} onNav={navigate} collapsed={collapsed} theme={theme} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         <Navbar page={page} />
         <main style={{
