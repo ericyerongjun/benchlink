@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.engine import AgentEngine
 from app.agent.schemas import AgentContext, AgentResponse
-from app.agent.tools.rfq_generator import rfq_generator_tool
+from app.agent.prompts.templates import RFQ_ENGLISH_SECTION, RFQ_CHINESE_SECTION
 from app.models.sourcing_request import SourcingSession, SourcingMessage
 from app.models.supplier import Supplier
 from app.models.rfq import RFQ
@@ -129,32 +129,62 @@ async def generate_rfq(
     if not sourcing_session:
         return None
 
-    result = await rfq_generator_tool.execute(
-        supplier_ids=supplier_ids,
-        product=product,
-        quantity=quantity,
-        specifications=specifications,
-        deadline=deadline,
-        terms=terms,
-    )
+    result_s = await db.execute(select(Supplier).where(Supplier.id.in_(supplier_ids)))
+    suppliers = result_s.scalars().all()
+
+    rfq_number = f"RFQ-{date.today().strftime('%Y')}-{uuid.uuid4().hex[:4].upper()}"
+    today_str = date.today().strftime("%B %d, %Y")
+
+    supplier_list_en = "\n".join(f"  - {s.name} ({s.location})" for s in suppliers)
+    supplier_list_zh = "\n".join(f"  - {s.name}（{s.location}）" for s in suppliers)
+
+    english_content = {
+        "rfq_number": rfq_number, "product": product,
+        "quantity": quantity, "specifications": specifications,
+        "deadline": deadline, "terms": terms,
+        "suppliers": [{"id": s.id, "name": s.name, "location": s.location} for s in suppliers],
+        "body": RFQ_ENGLISH_SECTION.format(
+            rfq_number=rfq_number, date=today_str, product=product,
+            quantity=quantity, specifications=specifications,
+            deadline=deadline, terms=terms, supplier_list=supplier_list_en,
+        ),
+    }
+    chinese_content = {
+        "rfq_number": rfq_number, "product": product,
+        "quantity": quantity, "specifications": specifications,
+        "deadline": deadline, "terms": terms,
+        "body": RFQ_CHINESE_SECTION.format(
+            rfq_number=rfq_number, date=today_str, product=product,
+            quantity=quantity, specifications=specifications,
+            deadline=deadline, terms=terms, supplier_list=supplier_list_zh,
+        ),
+    }
+
+    rfq_result = {
+        "success": True, "rfq_number": rfq_number,
+        "product": product, "quantity": quantity,
+        "specifications": specifications, "deadline": deadline, "terms": terms,
+        "supplier_ids": supplier_ids,
+        "english_content": english_content, "chinese_content": chinese_content,
+    }
 
     rfq = RFQ(
         session_id=session_id,
-        rfq_number=result["rfq_number"],
+        rfq_number=rfq_result["rfq_number"],
         product=product,
         quantity=quantity,
         specifications=specifications,
         deadline=deadline,
         terms=terms,
         supplier_ids=supplier_ids,
-        english_content=result["english_content"],
-        chinese_content=result["chinese_content"],
+        english_content=rfq_result["english_content"],
+        chinese_content=rfq_result["chinese_content"],
     )
     db.add(rfq)
 
     activity = Activity(
         tag="Sourcing",
-        text=f"RFQ {result['rfq_number']} generated for {len(supplier_ids)} suppliers",
+        text=f"RFQ {rfq_result['rfq_number']} generated for {len(supplier_ids)} suppliers",
         time_label="Just now",
     )
     db.add(activity)

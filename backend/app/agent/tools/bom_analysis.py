@@ -81,5 +81,3 @@ def _extract_lines_fallback(lines: list[str]) -> list[dict]:
             items.append({"part_number": "", "description": desc, "quantity": qty, "designator": ""})
     return items
 
-
-bom_analysis_tool = BOMAnalysisTool()

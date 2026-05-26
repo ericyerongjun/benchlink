@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.models.buyer import Buyer
 from app.schemas.buyer import BuyerOut, BuyerListOut, BuyerUpdate
 from app.services import buyer_service
-from app.services import dashboard_service
 
 router = APIRouter(prefix="/buyers")
 
@@ -51,10 +52,44 @@ async def discover_buyers(
     payload: dict,
     db: AsyncSession = Depends(get_db),
 ):
-    """AI-powered buyer discovery. Uses agent tool under the hood."""
-    from app.agent.tools.buyer_discovery import buyer_discovery_tool
-    result = await buyer_discovery_tool.execute(
-        product_description=payload.get("product_description", ""),
-        target_market=payload.get("target_market"),
-    )
-    return {"success": True, "data": result}
+    """AI-powered buyer discovery."""
+    product_description = payload.get("product_description", "")
+    target_market = payload.get("target_market")
+
+    desc_lower = product_description.lower()
+    keyword_map = {
+        "iot": "IoT", "sensor": "IoT Sensors", "pcb": "PCB Assemblies",
+        "electronics": "Custom Electronics", "consumer": "Consumer Hardware",
+        "robot": "Robotics Components", "wearable": "Wearables",
+    }
+    matched_interests = {
+        interest for kw, interest in keyword_map.items() if kw in desc_lower
+    }
+
+    query = select(Buyer)
+    if matched_interests:
+        query = query.where(or_(*[Buyer.interest.contains(i) for i in matched_interests]))
+    if target_market:
+        query = query.where(Buyer.country.ilike(f"%{target_market}%"))
+
+    query = query.order_by(Buyer.fit_score.desc()).limit(10)
+    result = await db.execute(query)
+    buyers = list(result.scalars().all())
+
+    return {
+        "success": True,
+        "data": {
+            "success": True,
+            "count": len(buyers),
+            "buyers": [
+                {
+                    "id": b.id, "name": b.name, "country_flag": b.country_flag,
+                    "country": b.country, "fit_score": b.fit_score,
+                    "interest": b.interest, "stage": b.stage,
+                    "contact_name": b.contact_name, "contact_email": b.contact_email,
+                    "last_contact": b.last_contact,
+                }
+                for b in buyers
+            ],
+        },
+    }

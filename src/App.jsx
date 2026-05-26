@@ -565,6 +565,10 @@ function SourcingView() {
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
 
+  // API-fetched suppliers (null = use fallback static data)
+  const [apiSuppliers, setApiSuppliers] = useState(null);
+  const [suppliersLoading, setSuppliersLoading] = useState(false);
+
   const chatEndRef = useRef(null);
 
   // API base URL
@@ -605,8 +609,54 @@ function SourcingView() {
       .then(d => { if (d.success) setCities(d.data); });
   }, [locCountry, locState]);
 
-  // Processed supplier list
+  // Fetch suppliers from backend when filters change
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (filterComponent) params.set('component', filterComponent);
+    if (locCountry) params.set('country', locCountry);
+    if (locState) params.set('state', locState);
+    if (locCity) params.set('city', locCity);
+    if (sortKey) {
+      const sortMap = { match: 'match', stars: 'stars', leadDays: 'lead_days', priceLow: 'price_low' };
+      params.set('sort_by', sortMap[sortKey] || sortKey);
+      params.set('sort_dir', sortDir);
+    }
+    params.set('per_page', '50');
+
+    setSuppliersLoading(true);
+    fetch(API + '/suppliers?' + params.toString())
+      .then(r => r.json())
+      .then(d => {
+        if (cancelled) return;
+        if (d.success) {
+          const mapped = d.data.map(s => ({
+            name: s.name,
+            loc: s.location,
+            country: s.country,
+            state: s.state,
+            city: s.city,
+            match: s.match_score,
+            stars: s.stars,
+            leadDays: s.lead_days,
+            lead: s.lead_label,
+            priceLow: s.price_low,
+            priceHigh: s.price_high,
+            price: s.price_label,
+            components: s.components || [],
+          }));
+          setApiSuppliers(mapped);
+        }
+      })
+      .catch(() => { if (!cancelled) setApiSuppliers(null); })
+      .finally(() => { if (!cancelled) setSuppliersLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [filterComponent, locCountry, locState, locCity, sortKey, sortDir]);
+
+  // Supplier list: use API data when available, fall back to static filtering
   const processedSuppliers = useMemo(() => {
+    if (apiSuppliers !== null) return apiSuppliers;
     let list = [...SUPPLIERS];
     if (filterComponent) {
       list = list.filter(s => s.components.some(c => c === filterComponent));
@@ -626,7 +676,7 @@ function SourcingView() {
       });
     }
     return list;
-  }, [filterComponent, locCountry, locState, locCity, sortKey, sortDir]);
+  }, [apiSuppliers, filterComponent, locCountry, locState, locCity, sortKey, sortDir]);
 
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -729,6 +779,7 @@ function SourcingView() {
     setLocCountry(''); setLocState(''); setLocCity('');
     setSortKey(null);
     setSortDir('asc');
+    setApiSuppliers(null);
   };
 
   const hasActiveFilters = filterComponent || locCountry || sortKey;
@@ -966,7 +1017,7 @@ function SourcingView() {
       <Card className="lx-table-card">
         <div className="lx-table-card__header">
           <span className="lx-table-card__title">Supplier Matches</span>
-          <Badge>{processedSuppliers.length} of {SUPPLIERS.length} results</Badge>
+          <Badge>{processedSuppliers.length} results</Badge>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             {sortKey && (
               <span style={{ color: C.muted, fontSize: 10, letterSpacing: '0.04em' }}>
@@ -1421,7 +1472,7 @@ function LogisticsView() {
                       <span>{s.destination}</span>
                       <span className="lx-shipment__pipe">|</span>
                       <Users size={11} style={{ color: C.muted }} />
-                      <span>{s.buyerName}</span>
+                      <span>{s.buyer}</span>
                     </div>
                   </div>
                   <div className="lx-progress-ring" style={{

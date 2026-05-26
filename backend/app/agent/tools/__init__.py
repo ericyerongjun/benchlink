@@ -1,9 +1,9 @@
 from app.agent.tools.base import BaseTool
 from app.agent.tools.supplier_search import SupplierSearchTool
-from app.agent.tools.bom_analysis import BOMAnalysisTool, bom_analysis_tool
+from app.agent.tools.bom_analysis import BOMAnalysisTool
 from app.agent.tools.rfq_generator import RFQGeneratorTool
 from app.agent.tools.buyer_discovery import BuyerDiscoveryTool
-from app.agent.tools.logistics_quote import LogisticsQuoteTool, logistics_quote_tool
+from app.agent.tools.logistics_quote import LogisticsQuoteTool
 from app.agent.tools.shipment_tracker import ShipmentTrackerTool
 
 

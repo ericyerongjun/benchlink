@@ -95,5 +95,3 @@ class BuyerDiscoveryTool(BaseTool):
                 ],
             }
 
-
-buyer_discovery_tool = BuyerDiscoveryTool(session_factory=None)

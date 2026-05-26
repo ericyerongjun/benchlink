@@ -109,5 +109,3 @@ class SupplierSearchTool(BaseTool):
                 ],
             }
 
-
-supplier_search_tool = SupplierSearchTool(session_factory=None)

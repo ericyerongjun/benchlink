@@ -8,6 +8,9 @@ async def list_suppliers(
     db: AsyncSession,
     component: str | None = None,
     location: str | None = None,
+    country: str | None = None,
+    state: str | None = None,
+    city: str | None = None,
     sort_by: str | None = None,
     sort_dir: str = "desc",
     page: int = 1,
@@ -21,12 +24,25 @@ async def list_suppliers(
     if location:
         query = query.where(Supplier.location.contains(location))
 
+    if country:
+        query = query.where(Supplier.country == country)
+    if state:
+        query = query.where(Supplier.state == state)
+    if city:
+        query = query.where(Supplier.city == city)
+
     # Count
     count_query = select(func.count()).select_from(Supplier).where(Supplier.is_active == True)
     if component:
         count_query = count_query.where(Supplier.components.contains([component]))
     if location:
         count_query = count_query.where(Supplier.location.contains(location))
+    if country:
+        count_query = count_query.where(Supplier.country == country)
+    if state:
+        count_query = count_query.where(Supplier.state == state)
+    if city:
+        count_query = count_query.where(Supplier.city == city)
     total = (await db.execute(count_query)).scalar()
 
     # Sort

@@ -1,9 +1,3 @@
-__pycache__/
-*.py[cod]
-*.db
-.env
-.venv/
-venv/
-*.egg-info/
-dist/
-.pytest_cache/
+# Backend-specific ignores (root .gitignore covers the rest)
+test.db
+logxus.db

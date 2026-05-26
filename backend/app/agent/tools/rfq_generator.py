@@ -139,5 +139,3 @@ class RFQGeneratorTool(BaseTool):
             "chinese_content": chinese_content,
         }
 
-
-rfq_generator_tool = RFQGeneratorTool(session_factory=None)

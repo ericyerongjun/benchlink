@@ -151,5 +151,3 @@ def _service_label(category: str) -> str:
         "forwarder": "Freight Forwarding",
     }.get(category, "Logistics Service")
 
-
-logistics_quote_tool = LogisticsQuoteTool(session_factory=None)

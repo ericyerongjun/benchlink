@@ -83,6 +83,34 @@ async def get_shipment(shipment_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.get("/shipments/{shipment_id}/track")
 async def track_shipment(shipment_id: str, db: AsyncSession = Depends(get_db)):
-    from app.agent.tools.shipment_tracker import shipment_tracker_tool
-    result = await shipment_tracker_tool.execute(shipment_id=shipment_id)
-    return {"success": result["success"], "data": result}
+    from app.models.shipment import Shipment
+
+    result = await db.execute(select(Shipment).where(Shipment.id == shipment_id))
+    shipment = result.scalar_one_or_none()
+
+    if not shipment:
+        return {"success": False, "data": {"success": False, "error": f"Shipment {shipment_id} not found"}}
+
+    stages = shipment.stages or []
+    completed = sum(1 for s in stages if s.get("done"))
+    current_stage = None
+    for s in stages:
+        if s.get("current"):
+            current_stage = s["label"]
+            break
+
+    return {
+        "success": True,
+        "data": {
+            "success": True,
+            "shipment_id": shipment.id,
+            "status": shipment.status,
+            "origin": shipment.origin,
+            "destination": shipment.destination,
+            "carrier": shipment.carrier,
+            "buyer": shipment.buyer_name,
+            "progress": f"{completed}/{len(stages)}",
+            "current_stage": current_stage or ("Completed" if shipment.status == "delivered" else "In transit"),
+            "stages": stages,
+        },
+    }

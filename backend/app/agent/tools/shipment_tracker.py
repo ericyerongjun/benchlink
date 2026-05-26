@@ -69,5 +69,3 @@ class ShipmentTrackerTool(BaseTool):
                 "stages": stages,
             }
 
-
-shipment_tracker_tool = ShipmentTrackerTool(session_factory=None)
