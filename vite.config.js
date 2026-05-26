@@ -8,5 +8,11 @@ export default defineConfig({
     host: true,
     open: false,
     watch: { usePolling: true, interval: 300 },
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8001',
+        changeOrigin: true,
+      },
+    },
   },
 });
