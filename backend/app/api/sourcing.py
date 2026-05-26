@@ -105,6 +105,12 @@ async def upload_bom(
     db: AsyncSession = Depends(get_db),
 ):
     content_bytes = await file.read()
+
+    from app.utils.file_parser import validate_file
+    is_valid, error = validate_file(file.content_type, len(content_bytes))
+    if not is_valid:
+        return {"success": False, "error": {"code": "INVALID_FILE", "message": error}}
+
     try:
         bom_text = content_bytes.decode("utf-8")
     except UnicodeDecodeError:

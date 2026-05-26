@@ -5,8 +5,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.location import Location
+from app.schemas.location import LocationOut, LocationListOut
 
 router = APIRouter(prefix="/locations")
+
+
+@router.get("", response_model=LocationListOut)
+async def list_all_locations(db: AsyncSession = Depends(get_db)):
+    """Return all locations as structured records."""
+    result = await db.execute(
+        select(Location).order_by(Location.country, Location.state, Location.city)
+    )
+    locations = result.scalars().all()
+    return {"success": True, "data": [LocationOut.model_validate(l) for l in locations]}
 
 
 @router.get("/countries")
