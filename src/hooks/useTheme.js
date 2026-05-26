@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 
-const STORAGE_KEY = 'logxus-theme';
+const STORAGE_KEY = 'benchlink-theme';
 
 function resolveEffective(pref) {
   if (pref === 'light' || pref === 'dark') return pref;

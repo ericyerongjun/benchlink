@@ -42,11 +42,11 @@ const CHART_DATA = [
 ];
 
 const SUPPLIERS = [
-  { name: 'Shenzhen PCB Co.',   loc: 'Nanshan, SZ',   match: 94, stars: 5, leadDays: 7,  lead: '7 days',  priceLow: 0.80, priceHigh: 1.20, price: '$0.80–$1.20/unit', components: ['FR4 PCB', 'Multilayer PCB', 'HASL Finish'] },
-  { name: 'GBA Circuit Works',  loc: 'Futian, SZ',    match: 88, stars: 4, leadDays: 10, lead: '10 days', priceLow: 0.65, priceHigh: 0.95, price: '$0.65–$0.95/unit', components: ['SMT Assembly', 'PCB Fab', 'ENIG Finish'] },
-  { name: 'Dragon Electronics', loc: 'Longhua, SZ',   match: 82, stars: 4, leadDays: 14, lead: '14 days', priceLow: 0.55, priceHigh: 0.80, price: '$0.55–$0.80/unit', components: ['FR4 PCB', 'HASL Finish', 'Wave Soldering'] },
-  { name: 'Pearl River Fab',    loc: 'Guangzhou',     match: 79, stars: 3, leadDays: 12, lead: '12 days', priceLow: 0.45, priceHigh: 0.70, price: '$0.45–$0.70/unit', components: ['PCB Fab', 'CNC Machining', 'Aluminum PCB'] },
-  { name: 'HK Precision Mfg',  loc: 'Kwun Tong, HK', match: 75, stars: 4, leadDays: 8,  lead: '8 days',  priceLow: 1.10, priceHigh: 1.60, price: '$1.10–$1.60/unit', components: ['Precision PCB', 'ENIG Finish', 'Rigid-Flex'] },
+  { name: 'Shenzhen PCB Co.',   loc: 'Nanshan, SZ',   country: 'China', state: 'Guangdong', city: 'Shenzhen', match: 94, stars: 5, leadDays: 7,  lead: '7 days',  priceLow: 0.80, priceHigh: 1.20, price: '$0.80–$1.20/unit', components: ['FR4 PCB', 'Multilayer PCB', 'HASL Finish'] },
+  { name: 'GBA Circuit Works',  loc: 'Futian, SZ',    country: 'China', state: 'Guangdong', city: 'Shenzhen', match: 88, stars: 4, leadDays: 10, lead: '10 days', priceLow: 0.65, priceHigh: 0.95, price: '$0.65–$0.95/unit', components: ['SMT Assembly', 'PCB Fab', 'ENIG Finish'] },
+  { name: 'Dragon Electronics', loc: 'Longhua, SZ',   country: 'China', state: 'Guangdong', city: 'Shenzhen', match: 82, stars: 4, leadDays: 14, lead: '14 days', priceLow: 0.55, priceHigh: 0.80, price: '$0.55–$0.80/unit', components: ['FR4 PCB', 'HASL Finish', 'Wave Soldering'] },
+  { name: 'Pearl River Fab',    loc: 'Guangzhou',     country: 'China', state: 'Guangdong', city: 'Guangzhou', match: 79, stars: 3, leadDays: 12, lead: '12 days', priceLow: 0.45, priceHigh: 0.70, price: '$0.45–$0.70/unit', components: ['PCB Fab', 'CNC Machining', 'Aluminum PCB'] },
+  { name: 'HK Precision Mfg',  loc: 'Kwun Tong, HK',  country: 'China', state: 'Hong Kong', city: 'Hong Kong', match: 75, stars: 4, leadDays: 8,  lead: '8 days',  priceLow: 1.10, priceHigh: 1.60, price: '$1.10–$1.60/unit', components: ['Precision PCB', 'ENIG Finish', 'Rigid-Flex'] },
 ];
 
 const BUYERS = [
@@ -194,7 +194,7 @@ function Sidebar({ active, onNav, collapsed, theme }) {
         {collapsed
           ? <span className="lx-sidebar__logo-text" style={{ color: C.bright, fontSize: 17 }}>L</span>
           : <>
-              <span className="lx-sidebar__logo-text">LOGXUS</span>
+              <span className="lx-sidebar__logo-text">BENCHLINK</span>
               <span className="lx-sidebar__logo-dot" />
             </>
         }
@@ -248,7 +248,7 @@ function Navbar({ page }) {
   return (
     <header className="lx-navbar">
       <h1 className="lx-navbar__title">
-        {PAGE_TITLE[page] || 'Logxus'}
+        {PAGE_TITLE[page] || 'Benchlink'}
       </h1>
 
       <div className="lx-navbar__search-wrap">
@@ -536,64 +536,74 @@ function SupplierRow({ s }) {
 }
 
 // ─── Agentic AI keyword → component mapping ──────────────────────────────────
-const COMPONENT_MAP = {
-  pcb:        ['FR4 PCB', 'Multilayer PCB', 'Aluminum PCB'],
-  circuit:    ['FR4 PCB', 'Precision PCB'],
-  iot:        ['SMT Assembly', 'Quality Testing'],
-  sensor:     ['SMT Assembly', 'Quality Testing', 'FR4 PCB'],
-  assembly:   ['SMT Assembly'],
-  smt:        ['SMT Assembly'],
-  cnc:        ['CNC Machining'],
-  machining:  ['CNC Machining'],
-  precision:  ['Precision PCB', 'ENIG Finish'],
-  flex:       ['Rigid-Flex'],
-  rigid:      ['Rigid-Flex'],
-  enig:       ['ENIG Finish'],
-  hasl:       ['HASL Finish'],
-  soldering:  ['Wave Soldering'],
-  wave:       ['Wave Soldering'],
-  multilayer: ['Multilayer PCB', 'FR4 PCB'],
-  aluminum:   ['Aluminum PCB'],
-  wearable:   ['Rigid-Flex', 'SMT Assembly'],
-  consumer:   ['FR4 PCB', 'HASL Finish', 'Wave Soldering'],
-};
 
 function SourcingView() {
   const [uploaded, setUploaded] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [showRfq, setShowRfq] = useState(false);
 
-  // Chat state
+  // Chat + API state
+  const [sessionId, setSessionId] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [aiThinking, setAiThinking] = useState(false);
   const [detectedComponents, setDetectedComponents] = useState([]);
 
-  // Filter & sort state
+  // Location filter state (hierarchical)
+  const [locCountry, setLocCountry] = useState('');
+  const [locState, setLocState] = useState('');
+  const [locCity, setLocCity] = useState('');
+  const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+
+  // Component filter state
   const [filterComponent, setFilterComponent] = useState(null);
-  const [filterLocation, setFilterLocation] = useState(null);
-  const [sortKey, setSortKey] = useState(null);     // 'match' | 'stars' | 'leadDays' | 'priceLow'
+  const [accumulatedComponents, setAccumulatedComponents] = useState([]);
+
+  // Sort state
+  const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
 
   const chatEndRef = useRef(null);
+
+  // API base URL
+  const API = '/api/v1';
 
   // Scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, aiThinking]);
 
-  // All unique components & locations for filter chips
-  const allComponents = useMemo(() => {
-    const set = new Set();
-    SUPPLIERS.forEach(s => s.components.forEach(c => set.add(c)));
-    return [...set].sort();
+  // Load countries on mount
+  useEffect(() => {
+    fetch(API + '/locations/countries')
+      .then(r => r.json())
+      .then(d => { if (d.success) setCountries(d.data); });
   }, []);
 
-  const allLocations = useMemo(() => {
-    const set = new Set();
-    SUPPLIERS.forEach(s => set.add(s.loc));
-    return [...set].sort();
+  // Load accumulated components on mount
+  useEffect(() => {
+    fetch(API + '/sourcing/components')
+      .then(r => r.json())
+      .then(d => { if (d.success) setAccumulatedComponents(d.data); });
   }, []);
+
+  // When country changes, load states
+  useEffect(() => {
+    if (!locCountry) { setStates([]); setLocState(''); return; }
+    fetch(API + '/locations/' + encodeURIComponent(locCountry) + '/states')
+      .then(r => r.json())
+      .then(d => { if (d.success) setStates(d.data); });
+  }, [locCountry]);
+
+  // When state changes, load cities
+  useEffect(() => {
+    if (!locCountry || !locState) { setCities([]); setLocCity(''); return; }
+    fetch(API + '/locations/' + encodeURIComponent(locCountry) + '/' + encodeURIComponent(locState) + '/cities')
+      .then(r => r.json())
+      .then(d => { if (d.success) setCities(d.data); });
+  }, [locCountry, locState]);
 
   // Processed supplier list
   const processedSuppliers = useMemo(() => {
@@ -601,8 +611,12 @@ function SourcingView() {
     if (filterComponent) {
       list = list.filter(s => s.components.some(c => c === filterComponent));
     }
-    if (filterLocation) {
-      list = list.filter(s => s.loc === filterLocation);
+    if (locCity) {
+      list = list.filter(s => s.city === locCity);
+    } else if (locState) {
+      list = list.filter(s => s.state === locState);
+    } else if (locCountry) {
+      list = list.filter(s => s.country === locCountry);
     }
     if (sortKey) {
       list.sort((a, b) => {
@@ -612,11 +626,10 @@ function SourcingView() {
       });
     }
     return list;
-  }, [filterComponent, filterLocation, sortKey, sortDir]);
+  }, [filterComponent, locCountry, locState, locCity, sortKey, sortDir]);
 
   const handleSort = (key) => {
     if (sortKey === key) {
-      // Cycle: asc → desc → none
       if (sortDir === 'asc') { setSortDir('desc'); }
       else if (sortDir === 'desc') { setSortKey(null); setSortDir('asc'); }
     } else {
@@ -630,8 +643,8 @@ function SourcingView() {
     return <span style={{ color: C.bright, fontSize: 10, marginLeft: 2 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
   };
 
-  // Chat: simulate agentic AI analysis
-  const handleChatSubmit = (e) => {
+  // Chat: call real backend agentic AI
+  const handleChatSubmit = async (e) => {
     e?.preventDefault();
     const q = chatInput.trim();
     if (!q) return;
@@ -641,46 +654,129 @@ function SourcingView() {
     setChatInput('');
     setAiThinking(true);
 
-    // Simulate AI processing delay
-    setTimeout(() => {
-      const lower = q.toLowerCase();
-      const detected = new Set();
-      Object.entries(COMPONENT_MAP).forEach(([keyword, comps]) => {
-        if (lower.includes(keyword)) comps.forEach(c => detected.add(c));
+    try {
+      // Create session if needed
+      let sid = sessionId;
+      if (!sid) {
+        const res = await fetch(API + '/sourcing/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        const d = await res.json();
+        if (d.success) { sid = d.data.id; setSessionId(sid); }
+      }
+
+      // Send message to agent
+      const res = await fetch(API + '/sourcing/sessions/' + sid + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: q }),
       });
-      // If nothing matched, fallback to a generic set
-      const detectedArr = detected.size > 0 ? [...detected] : ['FR4 PCB', 'SMT Assembly', 'Quality Testing'];
+      const d = await res.json();
+
+      if (!d.success) throw new Error(d.error?.message || 'API error');
+
+      const components = d.data.components || [];
+      const componentNames = components.map(c => c.name);
+
+      // Update accumulated components from server
+      const accRes = await fetch(API + '/sourcing/components');
+      const accData = await accRes.json();
+      if (accData.success) setAccumulatedComponents(accData.data);
+
+      // Parse markdown content for display
+      const contentText = d.data.content;
 
       const aiMsg = {
         role: 'ai',
-        text: detected.size > 0
-          ? `Agentic AI analyzed your request. Detected **${detectedArr.length}** relevant component categories from our supplier database.`
-          : `No specific components matched your query. Showing all available supplier components for your review.`,
-        components: detectedArr,
+        text: contentText,
+        components: componentNames,
       };
       setMessages(prev => [...prev, aiMsg]);
-      setDetectedComponents(detectedArr);
+      setDetectedComponents(prev => {
+        const existing = new Set(prev.map(n => n.toLowerCase()));
+        const merged = [...prev];
+        componentNames.forEach(n => {
+          if (!existing.has(n.toLowerCase())) {
+            merged.push(n);
+            existing.add(n.toLowerCase());
+          }
+        });
+        return merged;
+      });
+      setUploaded(true);
+    } catch (err) {
+      const errorMsg = {
+        role: 'ai',
+        text: 'Error connecting to AI agent. Please ensure the backend is running and your DeepSeek API key is configured.',
+        components: [],
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
       setAiThinking(false);
-      setUploaded(true); // triggers AI Analysis panel too
-    }, 1400 + Math.random() * 800);
+    }
   };
 
   const handleFilterToggle = (type, value) => {
     if (type === 'component') {
       setFilterComponent(prev => prev === value ? null : value);
-    } else {
-      setFilterLocation(prev => prev === value ? null : value);
     }
   };
 
   const clearFilters = () => {
     setFilterComponent(null);
-    setFilterLocation(null);
+    setLocCountry(''); setLocState(''); setLocCity('');
     setSortKey(null);
     setSortDir('asc');
   };
 
-  const hasActiveFilters = filterComponent || filterLocation || sortKey;
+  const hasActiveFilters = filterComponent || locCountry || sortKey;
+
+  // Simple markdown renderer for bullet points
+  const renderContent = (text) => {
+    const lines = text.split('\n');
+    return lines.map((line, i) => {
+      // Bold bullet: - **Name**: explanation
+      const bulletMatch = line.match(/^-\s*\*\*(.+?)\*\*\s*:\s*(.+)/);
+      if (bulletMatch) {
+        const name = bulletMatch[1].trim();
+        const explanation = bulletMatch[2].trim();
+        return (
+          <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4, paddingLeft: 4 }}>
+            <span style={{ color: C.bright, fontSize: 14, flexShrink: 0 }}>•</span>
+            <button
+              onClick={() => handleFilterToggle('component', name)}
+              style={{
+                background: 'none', border: 'none', color: filterComponent === name ? C.bright : C.teal,
+                fontWeight: 700, cursor: 'pointer', fontSize: 13, padding: 0, textAlign: 'left',
+              }}
+            >
+              {name}
+            </button>
+            <span style={{ color: C.muted, fontSize: 12 }}>— {explanation}</span>
+          </div>
+        );
+      }
+      // Regular bullet: - text
+      if (line.match(/^[-•]\s/)) {
+        return (
+          <div key={i} style={{ color: C.text, fontSize: 13, paddingLeft: 12, marginBottom: 6, lineHeight: 1.6 }}>
+            {line}
+          </div>
+        );
+      }
+      // Bold heading: **text**
+      const boldMatch = line.match(/^\*\*(.+?)\*\*$/);
+      if (boldMatch) {
+        return <div key={i} style={{ color: C.text, fontWeight: 700, fontSize: 13, marginTop: 10, marginBottom: 6 }}>{boldMatch[1]}</div>;
+      }
+      // Empty line
+      if (!line.trim()) return <div key={i} style={{ height: 6 }} />;
+      // Regular text
+      return <div key={i} style={{ color: C.text, fontSize: 13, lineHeight: 1.6, marginBottom: 2 }}>{line}</div>;
+    });
+  };
 
   return (
     <div className="lx-sourcing">
@@ -690,6 +786,7 @@ function SourcingView() {
           <Zap size={15} style={{ color: C.bright }} />
           <span style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Agentic AI Sourcing</span>
           <Badge color={C.success}>Online</Badge>
+          {sessionId && <span style={{ color: C.muted, fontSize: 10, marginLeft: 'auto' }}>Session active</span>}
         </div>
 
         {/* Messages area */}
@@ -699,7 +796,7 @@ function SourcingView() {
               <Zap size={22} style={{ color: C.muted, marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
               Describe your product requirements and our agentic AI will analyze components<br />
               and match the best suppliers from the database.<br />
-              <span style={{ color: C.bright }}>Try: "I need multilayer PCBs for IoT sensors"</span>
+              <span style={{ color: C.bright }}>Try: "I need to build a laptop docking station for Mac"</span>
             </div>
           )}
           {messages.map((m, i) => (
@@ -715,8 +812,10 @@ function SourcingView() {
                   {m.role === 'user' ? 'Just now' : 'Analysis complete'}
                 </span>
               </div>
-              <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>{m.text}</div>
-              {m.components && (
+              <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>
+                {m.role === 'ai' ? renderContent(m.text) : m.text}
+              </div>
+              {m.components && m.components.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
                   {m.components.map(c => (
                     <button key={c}
@@ -749,9 +848,10 @@ function SourcingView() {
             onChange={e => setChatInput(e.target.value)}
             placeholder="Describe your product or paste BOM requirements..."
             className="lx-chatbox__input"
+            disabled={aiThinking}
           />
           <Btn variant="primary" onClick={handleChatSubmit} icon={<Send size={14} />}
-            style={{ padding: '9px 16px', fontSize: 12, flexShrink: 0 }}>
+            style={{ padding: '9px 16px', fontSize: 12, flexShrink: 0 }} disabled={aiThinking}>
             Analyze
           </Btn>
         </form>
@@ -784,9 +884,9 @@ function SourcingView() {
           </div>
           <div className="lx-ai-panel__grid">
             {[
-              { label: 'DETECTED COMPONENTS',   content: <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{detectedComponents.map(c => <Badge key={c} color={C.bright}>{c}</Badge>)}</div> },
-              { label: 'MANUFACTURING PROCESS', content: <span style={{ color: C.text, fontWeight: 600, fontSize: 13 }}>PCB Manufacturing — Multi-layer assembly</span> },
-              { label: 'QUALITY FLAGS',         content: <span style={{ color: C.warning, fontWeight: 600, fontSize: 13 }}>⚠ 2 advisory items — review recommended</span> },
+              { label: 'DETECTED COMPONENTS', content: <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 80, overflowY: 'auto' }}>{detectedComponents.map(c => <Badge key={c} color={C.bright} size="sm">{c}</Badge>)}</div> },
+              { label: 'MANUFACTURING HUBS', content: <span style={{ color: C.text, fontWeight: 600, fontSize: 13 }}>GBA / Global · {detectedComponents.length} component types analyzed</span> },
+              { label: 'SESSION STATUS', content: <span style={{ color: C.success, fontWeight: 600, fontSize: 13 }}>✓ Active · {processedSuppliers.length} suppliers matched</span> },
             ].map(({ label, content }) => (
               <div key={label} className="lx-ai-panel__cell">
                 <div className="lx-ai-panel__cell-label">{label}</div>
@@ -800,11 +900,14 @@ function SourcingView() {
       {/* ── Filter / Sort bar ── */}
       <Card className="lx-filter-bar">
         <div className="lx-filter-bar__row">
-          {/* Component filter */}
+          {/* Component filter — from AI analysis */}
           <div style={{ flex: 1, minWidth: 200 }}>
-            <div className="lx-filter-bar__label">Filter by Component</div>
-            <div className="lx-filter-bar__chips">
-              {allComponents.map(c => (
+            <div className="lx-filter-bar__label">Filter by Component (AI detected)</div>
+            <div className="lx-filter-bar__chips" style={{ maxHeight: 120, overflowY: 'auto' }}>
+              {accumulatedComponents.length === 0 && (
+                <span style={{ color: C.muted, fontSize: 11, fontStyle: 'italic' }}>Components will appear after AI analysis</span>
+              )}
+              {accumulatedComponents.map(c => (
                 <button key={c} onClick={() => handleFilterToggle('component', c)}
                   className={`lx-filter-chip${filterComponent === c ? ' lx-filter-chip--active' : ''}`}>
                   {c}
@@ -813,17 +916,35 @@ function SourcingView() {
             </div>
           </div>
 
-          {/* Location filter */}
-          <div style={{ minWidth: 160 }}>
+          {/* Location filter — hierarchical dropdowns */}
+          <div style={{ minWidth: 280 }}>
             <div className="lx-filter-bar__label">Filter by Location</div>
-            <div className="lx-filter-bar__chips">
-              {allLocations.map(loc => (
-                <button key={loc} onClick={() => handleFilterToggle('location', loc)}
-                  className={`lx-filter-chip${filterLocation === loc ? ' lx-filter-chip--active' : ''}`}>
-                  <MapPin size={10} style={{ marginRight: 2, verticalAlign: 'middle' }} />
-                  {loc}
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <select
+                value={locCountry}
+                onChange={e => { setLocCountry(e.target.value); setLocState(''); setLocCity(''); }}
+                className="lx-location-select">
+                <option value="">Country</option>
+                {countries.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {locCountry && states.length > 0 && (
+                <select
+                  value={locState}
+                  onChange={e => { setLocState(e.target.value); setLocCity(''); }}
+                  className="lx-location-select">
+                  <option value="">State / Province</option>
+                  {states.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              )}
+              {locState && cities.length > 0 && (
+                <select
+                  value={locCity}
+                  onChange={e => setLocCity(e.target.value)}
+                  className="lx-location-select">
+                  <option value="">City</option>
+                  {cities.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              )}
             </div>
           </div>
 
@@ -896,15 +1017,17 @@ function SourcingView() {
       </Card>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Btn variant="primary" onClick={() => setShowRfq(true)} icon={<FileText size={15} />} style={{ padding: '11px 24px', fontSize: 14 }}>
+        <Btn variant="outline" onClick={() => setShowRfq(true)}
+          icon={<FileText size={14} />}
+          style={{ fontSize: 12 }}>
           Generate RFQ Package
         </Btn>
       </div>
-
       {showRfq && <RfqModal onClose={() => setShowRfq(false)} />}
     </div>
   );
 }
+
 
 // ─── Buyers ───────────────────────────────────────────────────────────────────
 function BuyerCard({ b, selected, onClick }) {
@@ -1086,39 +1209,83 @@ function BuyersView() {
 // ─── Logistics ────────────────────────────────────────────────────────────────
 function LogisticsView() {
   const [quotesLoaded, setQuotesLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [currency, setCurrency] = useState('HKD');
-  const [cargoType, setCargoType] = useState('Parcel');
-  const [urgency, setUrgency] = useState('Standard');
-  const [dest, setDest] = useState('Los Angeles, USA');
-  const [weight, setWeight] = useState('2.5');
+  const [cargoType, setCargoType] = useState('parcel');
+  const [urgency, setUrgency] = useState('standard');
+  const [origin, setOrigin] = useState('Shenzhen');
+  const [dest, setDest] = useState('Frankfurt');
+  const [weight, setWeight] = useState('10');
+  const [lengthCm, setLengthCm] = useState('30');
+  const [widthCm, setWidthCm] = useState('20');
+  const [heightCm, setHeightCm] = useState('15');
+  const [quantity, setQuantity] = useState('1');
+  const [quotes, setQuotes] = useState([]);
+
+  const API = '/api/v1';
+
+  const handleGetQuotes = async () => {
+    setLoading(true);
+    setQuotesLoaded(false);
+    try {
+      const res = await fetch(API + '/logistics/quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origin: origin,
+          destination: dest,
+          cargo_type: 'Electronics',
+          weight_kg: parseFloat(weight) || 0,
+          length_cm: parseFloat(lengthCm) || 0,
+          width_cm: parseFloat(widthCm) || 0,
+          height_cm: parseFloat(heightCm) || 0,
+          quantity: parseInt(quantity) || 1,
+          urgency: urgency,
+        }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setQuotes(d.data);
+      }
+    } catch (err) {
+      console.error('Failed to get quotes:', err);
+    } finally {
+      setLoading(false);
+      setQuotesLoaded(true);
+    }
+  };
+
+  const categoryLabels = { parcel: 'Parcel/Express', air_freight: 'Air Freight', ocean: 'Ocean Freight', forwarder: 'Forwarder' };
+  const categoryColors = { parcel: '#E74C3C', air_freight: '#3498DB', ocean: '#2ECC71', forwarder: '#F39C12' };
 
   return (
     <div className="lx-logistics">
-      {/* Quote form */}
       <Card>
         <SectionTitle icon={<Globe size={16} />}>Get Shipping Quotes</SectionTitle>
         <div className="lx-quote-form__fields">
           <div>
             <label className="lx-quote-form__label">FROM</label>
-            <select className="lx-quote-form__input">
-              <option>Hong Kong</option>
+            <select value={origin} onChange={e => setOrigin(e.target.value)} className="lx-quote-form__input">
               <option>Shenzhen</option>
               <option>Guangzhou</option>
+              <option>Hong Kong</option>
+              <option>Dongguan</option>
+              <option>Huizhou</option>
             </select>
           </div>
           <div>
             <label className="lx-quote-form__label">TO</label>
-            <input value={dest} onChange={e => setDest(e.target.value)} className="lx-quote-form__input" />
+            <input value={dest} onChange={e => setDest(e.target.value)} placeholder="Frankfurt" className="lx-quote-form__input" />
           </div>
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label className="lx-quote-form__label">CARGO TYPE</label>
+          <label className="lx-quote-form__label">CARRIER TYPE</label>
           <div className="lx-quote-form__chips">
-            {['Parcel', 'Air Freight', 'Ocean FCL', 'Ocean LCL'].map(t => (
-              <button key={t} onClick={() => setCargoType(t)}
-                className={`lx-quote-form__chip${cargoType === t ? ' lx-quote-form__chip--active' : ''}`}>
-                {t}
+            {Object.entries(categoryLabels).map(([k, v]) => (
+              <button key={k} onClick={() => setCargoType(k)}
+                className={`lx-quote-form__chip${cargoType === k ? ' lx-quote-form__chip--active' : ''}`}>
+                {v}
               </button>
             ))}
           </div>
@@ -1127,38 +1294,47 @@ function LogisticsView() {
         <div className="lx-quote-form__row">
           <div>
             <label className="lx-quote-form__label">WEIGHT (KG)</label>
-            <input value={weight} onChange={e => setWeight(e.target.value)} className="lx-quote-form__input" />
+            <input value={weight} onChange={e => setWeight(e.target.value)} className="lx-quote-form__input" type="number" min="0" />
           </div>
           <div>
-            <label className="lx-quote-form__label">DIMENSIONS (CM)</label>
-            <input defaultValue="30 × 20 × 15" className="lx-quote-form__input" />
+            <label className="lx-quote-form__label">QTY</label>
+            <input value={quantity} onChange={e => setQuantity(e.target.value)} className="lx-quote-form__input" type="number" min="1" style={{ width: 60 }} />
+          </div>
+          <div>
+            <label className="lx-quote-form__label">L x W x H (CM)</label>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <input value={lengthCm} onChange={e => setLengthCm(e.target.value)} placeholder="L" className="lx-quote-form__input" type="number" min="0" style={{ width: 55 }} />
+              <span style={{ color: C.muted, fontSize: 11, alignSelf: 'center' }}>x</span>
+              <input value={widthCm} onChange={e => setWidthCm(e.target.value)} placeholder="W" className="lx-quote-form__input" type="number" min="0" style={{ width: 55 }} />
+              <span style={{ color: C.muted, fontSize: 11, alignSelf: 'center' }}>x</span>
+              <input value={heightCm} onChange={e => setHeightCm(e.target.value)} placeholder="H" className="lx-quote-form__input" type="number" min="0" style={{ width: 55 }} />
+            </div>
           </div>
           <div>
             <label className="lx-quote-form__label">URGENCY</label>
             <div style={{ display: 'flex', border: `1px solid ${C.border}`, borderRadius: 7, overflow: 'hidden' }}>
-              {['Standard', 'Express'].map(u => (
+              {['standard', 'express', 'economy'].map(u => (
                 <button key={u} onClick={() => setUrgency(u)} style={{
                   flex: 1, padding: '9px 0', cursor: 'pointer', fontSize: 12, fontWeight: 500, border: 'none',
                   background: urgency === u ? C.teal : 'transparent',
-                  color: urgency === u ? '#fff' : C.muted, transition: 'all 0.15s',
+                  color: urgency === u ? '#fff' : C.muted, transition: 'all 0.15s', textTransform: 'capitalize',
                 }}>{u}</button>
               ))}
             </div>
           </div>
         </div>
 
-        <Btn variant="primary" onClick={() => setQuotesLoaded(true)} icon={<ChevronRight size={15} />} style={{ padding: '10px 22px', fontSize: 13 }}>
-          Get Quotes
+        <Btn variant="primary" onClick={handleGetQuotes} icon={<ChevronRight size={15} />} style={{ padding: '10px 22px', fontSize: 13 }} disabled={loading}>
+          {loading ? 'Calculating...' : 'Get Quotes'}
         </Btn>
       </Card>
 
-      {/* Results */}
       {quotesLoaded && (
         <Card className="lx-table-card fade-in">
           <div className="lx-table-card__header" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="lx-table-card__title">Available Quotes</span>
-              <Badge color={C.success}>4 options</Badge>
+              <Badge color={C.success}>{quotes.length} options</Badge>
             </div>
             <div style={{ display: 'flex', border: `1px solid ${C.border}`, borderRadius: 6, overflow: 'hidden' }}>
               {['HKD', 'USD'].map(c => (
@@ -1174,18 +1350,26 @@ function LogisticsView() {
             <table className="lx-table lx-quote-table">
               <thead>
                 <tr className="lx-table__head">
-                  {['Carrier', 'Service', 'Transit', 'Price', 'CO₂ Est.', ''].map(h => (
+                  {['Carrier', 'Type', 'Country', 'Transit', 'Price', 'CO2 Est.', ''].map(h => (
                     <th key={h} className="lx-table__th">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {QUOTES.map((q, i) => (
+                {quotes.length === 0 && (
+                  <tr><td colSpan={7} className="lx-table__empty">No quotes available for this route. Try a different origin/destination.</td></tr>
+                )}
+                {quotes.map((q, i) => (
                   <tr key={i} className="lx-table__row">
                     <td className="lx-table__td">
-                      <span className="lx-quote-carrier" style={{ background: q.col, color: '#fff' }}>{q.carrier}</span>
+                      <span className="lx-quote-carrier" style={{ background: categoryColors[q.category] || C.teal, color: '#fff' }}>
+                        {q.carrier.length > 28 ? q.carrier.slice(0, 25) + '...' : q.carrier}
+                      </span>
                     </td>
-                    <td className="lx-table__td" style={{ color: C.text }}>{q.service}</td>
+                    <td className="lx-table__td" style={{ color: C.text, fontSize: 11 }}>
+                      {categoryLabels[q.category] || q.category}
+                    </td>
+                    <td className="lx-table__td" style={{ color: C.muted, fontSize: 11 }}>{q.country}</td>
                     <td className="lx-table__td">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <Clock size={11} />{q.transit}
@@ -1193,17 +1377,17 @@ function LogisticsView() {
                     </td>
                     <td className="lx-table__td">
                       <span style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>
-                        {currency === 'HKD' ? `$${q.hkd}` : `$${q.usd}`}
+                        {currency === 'HKD' ? `$${q.price_hkd}` : `$${q.price_usd}`}
                       </span>
                       <span style={{ color: C.muted, fontSize: 11, marginLeft: 4 }}>{currency}</span>
                     </td>
                     <td className="lx-table__td">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: C.success }}>
-                        <Leaf size={11} />{q.co2} CO₂
+                        <Leaf size={11} />{q.co2_kg} CO2
                       </div>
                     </td>
                     <td className="lx-table__td">
-                      <Btn variant="primary" style={{ padding: '6px 16px', fontSize: 11 }}>Book Now</Btn>
+                      <Btn variant="primary" style={{ padding: '6px 16px', fontSize: 11 }}>Book</Btn>
                     </td>
                   </tr>
                 ))}
@@ -1213,7 +1397,6 @@ function LogisticsView() {
         </Card>
       )}
 
-      {/* Active shipments — FedEx-style tracking */}
       <Card>
         <SectionTitle icon={<Package size={16} />}>Active Shipments</SectionTitle>
         <div className="lx-shipments">
@@ -1224,7 +1407,6 @@ function LogisticsView() {
             const progressPct = allDone ? 100 : currentIdx >= 0 ? Math.round((currentIdx / (s.stages.length - 1)) * 100) : 0;
             return (
               <div key={i}>
-                {/* Shipment header */}
                 <div className="lx-shipment__header">
                   <div className="lx-shipment__info">
                     <div className="lx-shipment__id-row">
@@ -1235,14 +1417,13 @@ function LogisticsView() {
                     </div>
                     <div className="lx-shipment__route">
                       <span>{s.origin}</span>
-                      <span className="lx-shipment__arrow">→</span>
+                      <span className="lx-shipment__arrow">{'→'}</span>
                       <span>{s.destination}</span>
                       <span className="lx-shipment__pipe">|</span>
                       <Users size={11} style={{ color: C.muted }} />
-                      <span>{s.buyer}</span>
+                      <span>{s.buyerName}</span>
                     </div>
                   </div>
-                  {/* Progress ring */}
                   <div className="lx-progress-ring" style={{
                     background: `conic-gradient(${allDone ? C.success : C.bright} ${progressPct}%, ${C.border} ${progressPct}%)`,
                   }}>
@@ -1254,7 +1435,6 @@ function LogisticsView() {
                   </div>
                 </div>
 
-                {/* Tracking timeline */}
                 <div className="lx-timeline">
                   {s.stages.map((st, j) => {
                     const isLast = j === s.stages.length - 1;
@@ -1263,21 +1443,19 @@ function LogisticsView() {
                     const detailClass = st.date === 'Pending' ? ' lx-timeline__detail--pending' : '';
                     return (
                       <div key={j} className="lx-timeline__step">
-                        {/* Left rail */}
                         <div className="lx-timeline__rail">
                           <div className={`lx-timeline__dot ${dotClass}`}>
-                            {st.done && <span className="lx-timeline__dot-check">✓</span>}
+                            {st.done && <span className="lx-timeline__dot-check">{'✓'}</span>}
                           </div>
                           {!isLast && (
                             <div className={`lx-timeline__connector ${st.done ? 'lx-timeline__connector--done' : 'lx-timeline__connector--pending'}`} />
                           )}
                         </div>
-                        {/* Content */}
                         <div className={`lx-timeline__content ${isLast ? 'lx-timeline__step:last-child' : ''}`}>
                           <div className={`lx-timeline__label ${labelClass}`}>{st.label}</div>
                           <div className={`lx-timeline__detail${detailClass}`}>
-                            {st.loc} {st.date !== 'Pending' && <span>— {st.date}</span>}
-                            {st.date === 'Pending' && <span>— Awaiting update</span>}
+                            {st.loc} {st.date !== 'Pending' && <span>{' — '}{st.date}</span>}
+                            {st.date === 'Pending' && <span>{' — '}Awaiting update</span>}
                           </div>
                         </div>
                       </div>
@@ -1295,6 +1473,7 @@ function LogisticsView() {
     </div>
   );
 }
+
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
 function SettingsView({ theme }) {

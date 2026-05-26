@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Logxus Application Styles
+   Benchlink Application Styles
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ─── Atoms ─────────────────────────────────────────────────────────────────── */
@@ -498,6 +498,39 @@
   background: var(--c-teal);
   border-color: var(--c-teal);
   color: #FFF;
+  font-weight: 600;
+}
+
+/* Location select dropdowns */
+.lx-location-select {
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  color: var(--c-text);
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  min-width: 120px;
+  transition: border-color 0.15s;
+}
+.lx-location-select:focus {
+  border-color: var(--c-teal);
+}
+.lx-location-select option {
+  background: var(--c-surface);
+  color: var(--c-text);
+}
+
+/* Scrollable filter chips */
+.lx-filter-bar__chips::-webkit-scrollbar {
+  width: 4px;
+}
+.lx-filter-bar__chips::-webkit-scrollbar-thumb {
+  background: var(--c-border);
+  border-radius: 2px;
+}
   font-weight: 600;
 }
 
